@@ -27,8 +27,8 @@ from utility_futures_setup import major_minor_dir, major_return_dir, instru_idx_
 from utility_futures_setup import md_by_instru_dir
 from utility_futures_setup import calendar_path, futures_instru_info_path, global_config
 from skyrim.whiterun import CCalendar, CInstrumentInfoTable
-from cal_0_major_minor import update_major_minor
-from cal_1_major_return import update_major_return
+from DbMajorMinor import update_major_minor
+from DbMajorReturn import update_major_return
 
 CMDTY_VOLUME_MOVING_AVER_N, CMDTY_VOLUME_SHIFT_N = 3, 1
 BONDS_VOLUME_MOVING_AVER_N, BONDS_VOLUME_SHIFT_N = 3, 1
