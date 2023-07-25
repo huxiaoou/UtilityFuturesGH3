@@ -52,6 +52,8 @@ futures_by_instrument_dir = os.path.join(futures_dir, global_config["futures"]["
 major_minor_dir = os.path.join(futures_by_instrument_dir, global_config["futures"]["major_minor_dir"])
 major_return_dir = os.path.join(futures_by_instrument_dir, global_config["futures"]["major_return_dir"])
 fundamental_by_instru_dir = os.path.join(futures_by_instrument_dir, global_config["futures"]["fundamental_by_instru_dir"])
+major_minor_db_name = global_config["futures"]["major_minor_db"]
+major_return_db_name = global_config["futures"]["major_return_db"]
 
 # --- projects
 projects_dir = os.path.join(deploy_dir, global_config["projects"]["projects_save_dir"])

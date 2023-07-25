@@ -1,8 +1,9 @@
 import argparse
 import datetime as dt
 from DbMajorMinor import cal_major_minor
+from DbMajorReturn import cal_major_return
 from utility_futures_setup import global_config, futures_md_structure_path, futures_md_db_name, futures_md_dir, \
-    calendar_path, major_minor_dir
+    calendar_path, major_minor_dir, major_return_dir, major_minor_db_name, major_return_db_name
 
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(description="Entry point of this project", formatter_class=argparse.RawTextHelpFormatter)
@@ -26,13 +27,17 @@ if __name__ == "__main__":
     stp_date = (dt.datetime.strptime(bgn_date, "%Y%m%d") + dt.timedelta(days=1)).strftime("%Y%m%d") if stp_date is None else stp_date
     src_tab_name = "CTable2" if args.source.upper() == "TSDB" else "CTable"
 
+    # manual config
     concerned_universe = global_config["futures"]["concerned_universe"]
     volume_mov_ave_n_config, volume_mov_ave_n_default = {"IH.CFE": 1, "IF.CFE": 1, "IC.CFE": 1, "IM.CFE": 1,
                                                          "TS.CFE": 1, "T.CFE": 1, "TF.CFE": 1, "TL.CFE": 1, }, 3
+    major_return_price_type = "close"
+    vo_adj_split_date = "20200101"
 
+    # main
     if switch in ["MM"]:
         cal_major_minor(
-            db_save_dir=major_minor_dir, db_save_name="major_minor.db", instrument_ids=concerned_universe,
+            db_save_dir=major_minor_dir, db_save_name=major_minor_db_name, instrument_ids=concerned_universe,
             run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
             futures_md_structure_path=futures_md_structure_path,
             futures_md_db_name=futures_md_db_name,
@@ -43,7 +48,20 @@ if __name__ == "__main__":
             calendar_path=calendar_path,
             verbose=False
         )
-    elif switch in ["AU"]:  # "AVAILABLE UNIVERSE"
-        pass
+    elif switch in ["MR"]:
+        cal_major_return(
+            db_save_dir=major_return_dir, db_save_name=major_return_db_name, instrument_ids=concerned_universe,
+            run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
+            futures_md_structure_path=futures_md_structure_path,
+            futures_md_db_name=futures_md_db_name,
+            src_tab_name=src_tab_name,
+            futures_md_dir=futures_md_dir,
+            major_return_price_type=major_return_price_type,
+            vo_adj_split_date=vo_adj_split_date,
+            major_minor_dir=major_minor_dir,
+            major_minor_db_name=major_minor_db_name,
+            calendar_path=calendar_path,
+            verbose=False
+        )
     else:
         print(f"... switch = {switch} is not a legal option, please check again.")

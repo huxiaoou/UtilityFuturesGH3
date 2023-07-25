@@ -1,5 +1,5 @@
 """
-created @ 2023-04-17
+created @ 2023-07-24
 0.  this script only decide which contract is major and which is minor on T day
     so if we just want always trade major contract, the results will help
 1.  set volume delay from 1 to 2, so that major return is executable
