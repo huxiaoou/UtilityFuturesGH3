@@ -19,9 +19,9 @@ from DbByInstrument import CDbByInstrument
 
 class CDbByInstrumentMajorMinor(CDbByInstrument):
     def __init__(self, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
-                 src_tab_name: str, futures_md_structure_path: str, futures_md_db_name: str, futures_md_dir: str,
+                 futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
                  volume_mov_ave_n_config: dict[str, int], volume_mov_ave_n_default: int,
-                 calendar: CCalendar, verbose: bool = False):
+                 calendar: CCalendar, verbose: bool):
         # unique member
         self.m_volume_mov_ave_n_config: dict[str, int] = volume_mov_ave_n_config
         self.m_volume_mov_ave_n_default: int = volume_mov_ave_n_default
@@ -29,12 +29,13 @@ class CDbByInstrumentMajorMinor(CDbByInstrument):
         # init tables
         tables = [CTable(t_table_struct={
             "table_name": instrument_id.replace(".", "_"),
-            "primary_keys": {"trade_date": "TXT"},
-            "value_columns": {"n_contract": "TXT", "d_contract": "TXT"},
+            "primary_keys": {"trade_date": "TEXT"},
+            "value_columns": {"n_contract": "TEXT", "d_contract": "TEXT"},
         }) for instrument_id in instrument_ids]
-        super().__init__(db_save_dir, db_save_name, tables, run_mode,
-                         src_tab_name, futures_md_structure_path, futures_md_db_name, futures_md_dir,
-                         calendar, verbose)
+        super().__init__(db_save_dir=db_save_dir, db_save_name=db_save_name, tables=tables, run_mode=run_mode,
+                         futures_md_structure_path=futures_md_structure_path, futures_md_db_name=futures_md_db_name,
+                         src_tab_name=src_tab_name, futures_md_dir=futures_md_dir,
+                         calendar=calendar, verbose=verbose)
 
     @staticmethod
     def __parse_n_contract_and_d_contract(vol_srs: pd.Series, instrument: str, exchange: str):
@@ -50,7 +51,7 @@ class CDbByInstrumentMajorMinor(CDbByInstrument):
 
     def __update_major_minor(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str) -> pd.DataFrame:
         instrument, exchange = instrument_id.split(".")
-        volume_mov_ave_n = self.m_volume_mov_ave_n_config.get(instrument_id, 3)
+        volume_mov_ave_n = self.m_volume_mov_ave_n_config.get(instrument_id, self.m_volume_mov_ave_n_default)
 
         iter_dates = self.calendar.get_iter_list(bgn_date, stp_date, True)
         base_date = self.calendar.get_next_date(iter_dates[0], -volume_mov_ave_n + 1)
@@ -67,44 +68,38 @@ class CDbByInstrumentMajorMinor(CDbByInstrument):
         pivot_volume_df = pd.pivot_table(data=md_df, values="volume", index="trade_date", columns="contract").fillna(0)
         pivot_volume_df_sorted = pivot_volume_df.sort_index(axis=1).sort_index(axis=0)
         volume_mov_aver_df = pivot_volume_df_sorted.rolling(window=volume_mov_ave_n).mean()
+        volume_mov_aver_df = volume_mov_aver_df.loc[volume_mov_aver_df.index >= bgn_date]
         if run_mode in ["O", "OVERWRITE"]:
             volume_mov_aver_df = volume_mov_aver_df.fillna(method="bfill")  # for first few rows
-        else:
-            # drop first few rows, where the moving average volume is not correct
-            volume_mov_aver_df = volume_mov_aver_df.tail(len(volume_mov_aver_df) - volume_mov_ave_n + 1)
 
         # main loop to get major and minor contracts
         volume_mov_aver_df["n_contract"], volume_mov_aver_df["d_contract"] = \
             zip(*volume_mov_aver_df.apply(self.__parse_n_contract_and_d_contract, args=(instrument, exchange), axis=1))
         major_minor_df = volume_mov_aver_df[["n_contract", "d_contract"]].reset_index()
-        filter_dates = (major_minor_df["trade_date"] >= bgn_date) & (major_minor_df["trade_date"] < stp_date)
-        major_minor_df = major_minor_df.loc[filter_dates]
         return major_minor_df
 
     def get_update_df_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
-        update_df = self.__update_major_minor(instrument_id, run_mode, bgn_date, stp_date)
-        instru_tab_name = instrument_id.replace(".", "_")
-        self.save(table_name=instru_tab_name, update_df=update_df)
+        if self.check_continuity(instrument_id, run_mode, bgn_date):
+            update_df = self.__update_major_minor(instrument_id, run_mode, bgn_date, stp_date)
+            instru_tab_name = instrument_id.replace(".", "_")
+            self.save(update_df=update_df, using_index=False, table_name=instru_tab_name)
         return 0
 
 
-def cal_major_minor_mp(instrument_ids: list[str],
-                       db_save_dir: str, db_save_name: str,
-                       run_mode: str, bgn_date: str, stp_date: str,
-                       src_tab_name: str, futures_md_structure_path: str, futures_md_db_name: str, futures_md_dir: str,
-                       calendar_path: str,
-                       volume_mov_ave_n_config: dict[str, int], volume_mov_ave_n_default: int,
-                       verbose: bool,
-                       ):
+def cal_major_minor(
+        db_save_dir: str, db_save_name: str, instrument_ids: list[str],
+        run_mode: str, bgn_date: str, stp_date: str,
+        futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
+        volume_mov_ave_n_config: dict[str, int], volume_mov_ave_n_default: int,
+        calendar_path: str, verbose: bool,
+):
     calendar = CCalendar(calendar_path)
-
     db_by_instrument = CDbByInstrumentMajorMinor(
-        db_save_dir=db_save_dir, db_save_name=db_save_name,
-        instrument_ids=instrument_ids,
+        db_save_dir=db_save_dir, db_save_name=db_save_name, instrument_ids=instrument_ids,
         run_mode=run_mode,
-        src_tab_name=src_tab_name,
         futures_md_structure_path=futures_md_structure_path,
         futures_md_db_name=futures_md_db_name,
+        src_tab_name=src_tab_name,
         futures_md_dir=futures_md_dir,
         volume_mov_ave_n_config=volume_mov_ave_n_config,
         volume_mov_ave_n_default=volume_mov_ave_n_default,

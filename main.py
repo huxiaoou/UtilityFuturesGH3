@@ -1,6 +1,6 @@
 import argparse
 import datetime as dt
-from DbMajorMinor import cal_major_minor_mp
+from DbMajorMinor import cal_major_minor
 from utility_futures_setup import global_config, futures_md_structure_path, futures_md_db_name, futures_md_dir, \
     calendar_path, major_minor_dir
 
@@ -31,17 +31,16 @@ if __name__ == "__main__":
                                                          "TS.CFE": 1, "T.CFE": 1, "TF.CFE": 1, "TL.CFE": 1, }, 3
 
     if switch in ["MM"]:
-        cal_major_minor_mp(
-            instrument_ids=concerned_universe,
-            db_save_dir=major_minor_dir, db_save_name="major_minor.db",
+        cal_major_minor(
+            db_save_dir=major_minor_dir, db_save_name="major_minor.db", instrument_ids=concerned_universe,
             run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
-            src_tab_name=src_tab_name,
             futures_md_structure_path=futures_md_structure_path,
             futures_md_db_name=futures_md_db_name,
+            src_tab_name=src_tab_name,
             futures_md_dir=futures_md_dir,
-            calendar_path=calendar_path,
             volume_mov_ave_n_config=volume_mov_ave_n_config,
             volume_mov_ave_n_default=volume_mov_ave_n_default,
+            calendar_path=calendar_path,
             verbose=False
         )
     elif switch in ["AU"]:  # "AVAILABLE UNIVERSE"
