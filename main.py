@@ -1,9 +1,9 @@
 import argparse
 import datetime as dt
-from DbMajorMinor import cal_major_minor
-from DbMajorReturn import cal_major_return
 from utility_futures_setup import global_config, futures_md_structure_path, futures_md_db_name, futures_md_dir, \
-    calendar_path, major_minor_dir, major_return_dir, major_minor_db_name, major_return_db_name
+    calendar_path, major_minor_dir, major_return_dir, major_minor_db_name, major_return_db_name, md_by_instru_dir, \
+    futures_instru_info_path, custom_ts_db_path, fundamental_by_instru_dir, futures_fundamental_dir, futures_fundamental_db_name
+from skyrim.whiterun import CCalendar, CInstrumentInfoTable
 
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(description="Entry point of this project", formatter_class=argparse.RawTextHelpFormatter)
@@ -25,7 +25,8 @@ if __name__ == "__main__":
     run_mode = None if switch in ["FD"] else args.mode.upper()
     bgn_date, stp_date = args.bgn, args.stp
     stp_date = (dt.datetime.strptime(bgn_date, "%Y%m%d") + dt.timedelta(days=1)).strftime("%Y%m%d") if stp_date is None else stp_date
-    src_tab_name = "CTable2" if args.source.upper() == "TSDB" else "CTable"
+    src_type = args.source.upper()
+    src_tab_name = "CTable2" if src_type == "TSDB" else "CTable"
 
     # manual config
     concerned_universe = global_config["futures"]["concerned_universe"]
@@ -33,9 +34,15 @@ if __name__ == "__main__":
                                                          "TS.CFE": 1, "T.CFE": 1, "TF.CFE": 1, "TL.CFE": 1, }, 3
     major_return_price_type = "close"
     vo_adj_split_date = "20200101"
+    price_types = ["open", "close", "settle"]
+
+    #
+    calendar = CCalendar(calendar_path)
 
     # main
     if switch in ["MM"]:
+        from DbMajorMinor import cal_major_minor
+
         cal_major_minor(
             db_save_dir=major_minor_dir, db_save_name=major_minor_db_name, instrument_ids=concerned_universe,
             run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
@@ -45,10 +52,12 @@ if __name__ == "__main__":
             futures_md_dir=futures_md_dir,
             volume_mov_ave_n_config=volume_mov_ave_n_config,
             volume_mov_ave_n_default=volume_mov_ave_n_default,
-            calendar_path=calendar_path,
+            calendar=calendar,
             verbose=False
         )
     elif switch in ["MR"]:
+        from DbMajorReturn import cal_major_return
+
         cal_major_return(
             db_save_dir=major_return_dir, db_save_name=major_return_db_name, instrument_ids=concerned_universe,
             run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
@@ -60,8 +69,46 @@ if __name__ == "__main__":
             vo_adj_split_date=vo_adj_split_date,
             major_minor_dir=major_minor_dir,
             major_minor_db_name=major_minor_db_name,
-            calendar_path=calendar_path,
+            calendar=calendar,
             verbose=False
         )
+    elif switch in ["MD"]:
+        from DbMd import cal_md
+
+        cal_md(
+            proc_num=proc_num,
+            md_by_instru_dir=md_by_instru_dir, price_types=price_types, instrument_ids=concerned_universe,
+            run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
+            futures_md_structure_path=futures_md_structure_path,
+            futures_md_db_name=futures_md_db_name,
+            src_tab_name=src_tab_name,
+            futures_md_dir=futures_md_dir,
+            calendar=calendar,
+        )
+    elif switch in ["FD"]:
+        if src_type == "TSDB":
+            from TSDBTranslator2.translator import CTSDBReader
+            from CalFundFromTSDB import update_fundamental_by_instrument
+
+            instru_info_table = CInstrumentInfoTable(t_path=futures_instru_info_path, t_type="CSV")
+            tsdb_reader = CTSDBReader(t_tsdb_path=custom_ts_db_path)
+            update_fundamental_by_instrument(
+                t_bgn_date=bgn_date, t_stp_date=stp_date,
+                t_tsdb_reader=tsdb_reader,
+                t_calendar=calendar,
+                t_instru_info_table=instru_info_table,
+                t_fundamental_by_instru_dir=fundamental_by_instru_dir,
+            )
+        elif src_type == "SQL":
+            from skyrim.falkreath import CManagerLibReader
+            from CalFundFromSQL import update_fundamental_by_instrument_from_sql
+
+            sql_reader = CManagerLibReader(t_db_save_dir=futures_fundamental_dir, t_db_name=futures_fundamental_db_name + ".db")
+            update_fundamental_by_instrument_from_sql(
+                t_bgn_date=bgn_date, t_stp_date=stp_date,
+                t_sql_reader=sql_reader,
+                t_calendar=calendar,
+                t_fundamental_by_instru_dir=fundamental_by_instru_dir,
+            )
     else:
         print(f"... switch = {switch} is not a legal option, please check again.")

@@ -7,7 +7,9 @@ created @ 2023-04-18
 4.  use tsdb as source
 """
 
-from utility_futures_setup import os, dt, pd
+import os
+import datetime as dt
+import pandas as pd
 from skyrim.whiterun import CCalendar, CInstrumentInfoTable
 from TSDBTranslator2.translator import CTSDBReader
 from TSDBTranslator2.translator_funs import add_instrument_to_trade_date_tsdb_df
@@ -73,7 +75,6 @@ def update_fundamental_by_instrument(
             instrument_file = "{}.{}.csv.gz".format(wind_code, fundamental_data_type.upper())
             instrument_path = os.path.join(t_fundamental_by_instru_dir, instrument_file)
             new_sorted_instrument_df.to_csv(instrument_path, float_format="%.8f", index=False)
-            # print("| {} | {:>8s} | {:>8s} | fundamental |".format(dt.datetime.now(), wind_code, fundamental_data_type))
     return 0
 
 

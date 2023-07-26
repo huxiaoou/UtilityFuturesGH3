@@ -14,10 +14,10 @@ import datetime as dt
 import pandas as pd
 from skyrim.whiterun import CCalendar
 from skyrim.falkreath import CTable
-from DbByInstrument import CDbByInstrument
+from DbByInstrument import CDbByInstrumentSQL
 
 
-class CDbByInstrumentMajorMinor(CDbByInstrument):
+class CDbByInstrumentSQLMajorMinor(CDbByInstrumentSQL):
     def __init__(self, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
                  futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
                  volume_mov_ave_n_config: dict[str, int], volume_mov_ave_n_default: int,
@@ -57,12 +57,14 @@ class CDbByInstrumentMajorMinor(CDbByInstrument):
         base_date = self.calendar.get_next_date(iter_dates[0], -volume_mov_ave_n + 1)
 
         # --- load historical data
-        md_df = self.md_db.read_by_instrument_and_time_window(
+        db_reader = self.get_reader()
+        md_df = db_reader.read_by_instrument_and_time_window(
             t_instrument=instrument,
             t_value_columns=["trade_date", "loc_id", "volume"],
             t_bgn_date=base_date,
             t_stp_date=stp_date,
         ).rename(mapper={"loc_id": "contract"}, axis=1)
+        db_reader.close()
 
         # --- pivot
         pivot_volume_df = pd.pivot_table(data=md_df, values="volume", index="trade_date", columns="contract").fillna(0)
@@ -78,7 +80,7 @@ class CDbByInstrumentMajorMinor(CDbByInstrument):
         major_minor_df = volume_mov_aver_df[["n_contract", "d_contract"]].reset_index()
         return major_minor_df
 
-    def get_update_df_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
+    def get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
         if self.check_continuity(instrument_id, run_mode, bgn_date):
             update_df = self.__update_major_minor(instrument_id, run_mode, bgn_date, stp_date)
             instru_tab_name = instrument_id.replace(".", "_")
@@ -91,10 +93,9 @@ def cal_major_minor(
         run_mode: str, bgn_date: str, stp_date: str,
         futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
         volume_mov_ave_n_config: dict[str, int], volume_mov_ave_n_default: int,
-        calendar_path: str, verbose: bool,
+        calendar: CCalendar, verbose: bool,
 ):
-    calendar = CCalendar(calendar_path)
-    db_by_instrument = CDbByInstrumentMajorMinor(
+    db_by_instrument = CDbByInstrumentSQLMajorMinor(
         db_save_dir=db_save_dir, db_save_name=db_save_name, instrument_ids=instrument_ids,
         run_mode=run_mode,
         futures_md_structure_path=futures_md_structure_path,
@@ -109,7 +110,7 @@ def cal_major_minor(
 
     t0 = dt.datetime.now()
     for instrument_id in instrument_ids:
-        db_by_instrument.get_update_df_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
+        db_by_instrument.get_update_data_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
     db_by_instrument.close()
     t1 = dt.datetime.now()
     print("... major and minor contracts calculated".format((t1 - t0).total_seconds()))

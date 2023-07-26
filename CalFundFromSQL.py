@@ -56,7 +56,6 @@ def update_fundamental_by_instrument_from_sql(
             instrument_file = "{}.{}.csv.gz".format(instrument, fundamental_data_type.upper())
             instrument_path = os.path.join(t_fundamental_by_instru_dir, instrument_file)
             new_sorted_instrument_df.to_csv(instrument_path, float_format="%.8f", index=False)
-            # print("| {} | {:>8s} | {:>8s} | fundamental |".format(dt.datetime.now(), wind_code, fundamental_data_type))
     return 0
 
 

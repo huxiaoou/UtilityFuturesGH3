@@ -21,10 +21,10 @@ import numpy as np
 import pandas as pd
 from skyrim.whiterun import CCalendar
 from skyrim.falkreath import CTable, CManagerLibReader
-from DbByInstrument import CDbByInstrument
+from DbByInstrument import CDbByInstrumentSQL
 
 
-class CDbByInstrumentMajorReturn(CDbByInstrument):
+class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
     def __init__(self, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
                  futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
                  major_return_price_type: str, vo_adj_split_date: str,
@@ -89,12 +89,14 @@ class CDbByInstrumentMajorReturn(CDbByInstrument):
             major_minor_df["vo_adj_ratio"] = [2 if trade_date < self.m_vo_adj_split_date else 1 for trade_date in major_minor_df["trade_date"]]
 
         # --- load historical data
-        md_df = self.md_db.read_by_conditions(t_conditions=[
+        db_reader = self.get_reader()
+        md_df = db_reader.read_by_conditions(t_conditions=[
             ("trade_date", ">=", base_date),
             ("trade_date", "<", stp_date),
             ("instrument", "=", instrument),
         ], t_value_columns=["trade_date", "loc_id", "open", "high", "low", "close", "volume", "amount", "oi"],
         ).rename(mapper={"loc_id": "contract"}, axis=1)
+        db_reader.close()
 
         # --- fillna
         md_df[["open", "high", "low", "close"]] = md_df[["open", "high", "low", "close"]].fillna(np.nan)
@@ -149,7 +151,7 @@ class CDbByInstrumentMajorReturn(CDbByInstrument):
             "openC", "highC", "lowC", "closeC"
         ]]
 
-    def get_update_df_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
+    def get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
         if self.check_continuity(instrument_id, run_mode, bgn_date):
             update_df = self.__update_major_return(instrument_id, run_mode, bgn_date, stp_date)
             instru_tab_name = instrument_id.replace(".", "_")
@@ -163,11 +165,10 @@ def cal_major_return(
         futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
         major_return_price_type: str, vo_adj_split_date: str,
         major_minor_dir: str, major_minor_db_name: str,
-        calendar_path: str, verbose: bool,
+        calendar: CCalendar, verbose: bool,
 ):
-    calendar = CCalendar(calendar_path)
     major_minor_reader = CManagerLibReader(major_minor_dir, major_minor_db_name)
-    db_by_instrument = CDbByInstrumentMajorReturn(
+    db_by_instrument = CDbByInstrumentSQLMajorReturn(
         db_save_dir=db_save_dir, db_save_name=db_save_name, instrument_ids=instrument_ids,
         run_mode=run_mode,
         futures_md_structure_path=futures_md_structure_path,
@@ -183,10 +184,10 @@ def cal_major_return(
 
     t0 = dt.datetime.now()
     for instrument_id in instrument_ids:
-        db_by_instrument.get_update_df_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
+        db_by_instrument.get_update_data_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
     db_by_instrument.close()
     major_minor_reader.close()
     t1 = dt.datetime.now()
-    print("... major and minor contracts calculated".format((t1 - t0).total_seconds()))
+    print("... major return calculated".format((t1 - t0).total_seconds()))
     print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
     return 0

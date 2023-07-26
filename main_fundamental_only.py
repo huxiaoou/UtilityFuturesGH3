@@ -26,7 +26,7 @@ calendar = CCalendar(calendar_path)
 # --- main
 if src_type == "TSDB":
     from TSDBTranslator2.translator import CTSDBReader
-    from cal_fundamental import update_fundamental_by_instrument
+    from CalFundFromTSDB import update_fundamental_by_instrument
 
     instru_info_table = CInstrumentInfoTable(t_path=futures_instru_info_path, t_type="CSV")
     tsdb_reader = CTSDBReader(t_tsdb_path=custom_ts_db_path)
@@ -39,7 +39,7 @@ if src_type == "TSDB":
     )
 elif src_type == "SQL":
     from skyrim.falkreath import CManagerLibReader
-    from cal_fundamental_from_sql import update_fundamental_by_instrument_from_sql
+    from CalFundFromSQL import update_fundamental_by_instrument_from_sql
 
     sql_reader = CManagerLibReader(t_db_save_dir=futures_fundamental_dir, t_db_name=futures_fundamental_db_name + ".db")
     update_fundamental_by_instrument_from_sql(
