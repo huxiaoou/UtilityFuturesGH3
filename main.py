@@ -1,9 +1,9 @@
 import argparse
 import datetime as dt
+from skyrim.whiterun import CCalendar, CInstrumentInfoTable
 from utility_futures_setup import global_config, futures_md_structure_path, futures_md_db_name, futures_md_dir, \
     calendar_path, major_minor_dir, major_return_dir, major_minor_db_name, major_return_db_name, md_by_instru_dir, \
     futures_instru_info_path, custom_ts_db_path, fundamental_by_instru_dir, futures_fundamental_dir, futures_fundamental_db_name
-from skyrim.whiterun import CCalendar, CInstrumentInfoTable
 
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(description="Entry point of this project", formatter_class=argparse.RawTextHelpFormatter)
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     vo_adj_split_date = "20200101"
     price_types = ["open", "close", "settle"]
 
-    #
+    # shared calendar
     calendar = CCalendar(calendar_path)
 
     # main

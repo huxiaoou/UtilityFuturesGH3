@@ -6,7 +6,7 @@ created @ 2023-07-17
 3.  no argument run_mode is needed, or you can think it is always OVERWRITE
 4.  use sql of WDS as source
 """
-
+import datetime
 import os
 import pandas as pd
 from skyrim.whiterun import CCalendar
@@ -56,6 +56,7 @@ def update_fundamental_by_instrument_from_sql(
             instrument_file = "{}.{}.csv.gz".format(instrument, fundamental_data_type.upper())
             instrument_path = os.path.join(t_fundamental_by_instru_dir, instrument_file)
             new_sorted_instrument_df.to_csv(instrument_path, float_format="%.8f", index=False)
+        print(f"... @ {datetime.datetime.now()} fundamental-{fundamental_data_type} between [{t_bgn_date}, {t_stp_date}) are updated for all instruments ")
     return 0
 
 

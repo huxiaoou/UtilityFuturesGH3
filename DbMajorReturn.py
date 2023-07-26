@@ -131,10 +131,10 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
             base_val_instru_idx = 1
             base_val_close_price = major_return_df["close"].dropna().iloc[0]
         else:
-            instru_idx_df = self.m_by_instru_db.read_by_date(t_trade_date=base_date, t_value_columns=["instru_idx", "closeC"],
-                                                             t_using_default_table=False, t_table_name=instrument_id.replace(".", "_"))
-            base_val_instru_idx = instru_idx_df["instru_idx"].iloc[-1]
-            base_val_close_price = instru_idx_df["closeC"].iloc[-1]
+            base_date_df = self.m_by_instru_db.read_by_date(t_trade_date=base_date, t_value_columns=["instru_idx", "closeC"],
+                                                            t_using_default_table=False, t_table_name=instrument_id.replace(".", "_"))
+            base_val_instru_idx = base_date_df["instru_idx"].iloc[-1]
+            base_val_close_price = base_date_df["closeC"].iloc[-1]
         major_return_df["instru_idx"] = (major_return_df["major_return"] + 1).cumprod() * base_val_instru_idx
         major_return_df["closeC"] = (major_return_df["major_return"] + 1).cumprod() * base_val_close_price
 
