@@ -23,7 +23,7 @@ from DbByInstrument import CDbByInstrumentCSV
 class CDbByInstrumentCSVMd(CDbByInstrumentCSV):
     def __update_md(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
         instrument, exchange = instrument_id.split(".")
-        db_reader = self.get_reader()
+        db_reader = self.get_src_reader()
         md_df = db_reader.read_by_conditions(t_conditions=[
             ("trade_date", ">=", bgn_date),
             ("trade_date", "<", stp_date),
@@ -63,10 +63,10 @@ def cal_md(
     db_by_instrument = CDbByInstrumentCSVMd(
         md_by_instru_dir=md_by_instru_dir,
         price_types=price_types,
-        futures_md_structure_path=futures_md_structure_path,
-        futures_md_db_name=futures_md_db_name,
+        src_db_structure_path=futures_md_structure_path,
+        src_db_name=futures_md_db_name,
         src_tab_name=src_tab_name,
-        futures_md_dir=futures_md_dir,
+        src_db_dir=futures_md_dir,
         calendar=calendar,
     )
 

@@ -17,7 +17,7 @@ from DbByInstrument import CDbByInstrumentSQL
 
 class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
     def __init__(self, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
-                 futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
+                 src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
                  vo_adj_split_date: str,
                  calendar: CCalendar, instru_info_table: CInstrumentInfoTable, verbose: bool):
         self.m_vo_adj_split_date = vo_adj_split_date  # "20200101"
@@ -36,8 +36,8 @@ class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
             },
         }) for instrument_id in instrument_ids]
         super().__init__(db_save_dir=db_save_dir, db_save_name=db_save_name, tables=tables, run_mode=run_mode,
-                         futures_md_structure_path=futures_md_structure_path, futures_md_db_name=futures_md_db_name,
-                         src_tab_name=src_tab_name, futures_md_dir=futures_md_dir,
+                         src_db_structure_path=src_db_structure_path, src_db_name=src_db_name,
+                         src_tab_name=src_tab_name, src_db_dir=src_db_dir,
                          calendar=calendar, verbose=verbose)
 
     def __update_volume_like_data(self, instrument_id: str, bgn_date: str, stp_date: str):
@@ -45,7 +45,7 @@ class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
         contract_multiplier = self.m_instru_info_table.get_multiplier(instrument_id)
 
         # --- load historical data
-        db_reader = self.get_reader()
+        db_reader = self.get_src_reader()
         md_df = db_reader.read_by_conditions(t_conditions=[
             ("trade_date", ">=", bgn_date),
             ("trade_date", "<", stp_date),
@@ -87,10 +87,10 @@ def cal_volume(
     db_by_instrument = CDbByInstrumentSQLVolume(
         db_save_dir=db_save_dir, db_save_name=db_save_name, instrument_ids=instrument_ids,
         run_mode=run_mode,
-        futures_md_structure_path=futures_md_structure_path,
-        futures_md_db_name=futures_md_db_name,
+        src_db_structure_path=futures_md_structure_path,
+        src_db_name=futures_md_db_name,
         src_tab_name=src_tab_name,
-        futures_md_dir=futures_md_dir,
+        src_db_dir=futures_md_dir,
         vo_adj_split_date=vo_adj_split_date,
         calendar=calendar,
         instru_info_table=instru_info_table,

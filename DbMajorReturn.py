@@ -26,7 +26,7 @@ from DbByInstrument import CDbByInstrumentSQL
 
 class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
     def __init__(self, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
-                 futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
+                 src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
                  major_return_price_type: str, vo_adj_split_date: str,
                  major_minor_reader: CManagerLibReader,
                  calendar: CCalendar, verbose: bool):
@@ -57,8 +57,8 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
                               },
         }) for instrument_id in instrument_ids]
         super().__init__(db_save_dir=db_save_dir, db_save_name=db_save_name, tables=tables, run_mode=run_mode,
-                         futures_md_structure_path=futures_md_structure_path, futures_md_db_name=futures_md_db_name,
-                         src_tab_name=src_tab_name, futures_md_dir=futures_md_dir,
+                         src_db_structure_path=src_db_structure_path, src_db_name=src_db_name,
+                         src_tab_name=src_tab_name, src_db_dir=src_db_dir,
                          calendar=calendar, verbose=verbose)
 
     @staticmethod
@@ -89,7 +89,7 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
             major_minor_df["vo_adj_ratio"] = [2 if trade_date < self.m_vo_adj_split_date else 1 for trade_date in major_minor_df["trade_date"]]
 
         # --- load historical data
-        db_reader = self.get_reader()
+        db_reader = self.get_src_reader()
         md_df = db_reader.read_by_conditions(t_conditions=[
             ("trade_date", ">=", base_date),
             ("trade_date", "<", stp_date),
@@ -171,10 +171,10 @@ def cal_major_return(
     db_by_instrument = CDbByInstrumentSQLMajorReturn(
         db_save_dir=db_save_dir, db_save_name=db_save_name, instrument_ids=instrument_ids,
         run_mode=run_mode,
-        futures_md_structure_path=futures_md_structure_path,
-        futures_md_db_name=futures_md_db_name,
+        src_db_structure_path=futures_md_structure_path,
+        src_db_name=futures_md_db_name,
         src_tab_name=src_tab_name,
-        futures_md_dir=futures_md_dir,
+        src_db_dir=futures_md_dir,
         major_return_price_type=major_return_price_type,
         vo_adj_split_date=vo_adj_split_date,
         major_minor_reader=major_minor_reader,

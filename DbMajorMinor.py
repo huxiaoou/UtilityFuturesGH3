@@ -19,7 +19,7 @@ from DbByInstrument import CDbByInstrumentSQL
 
 class CDbByInstrumentSQLMajorMinor(CDbByInstrumentSQL):
     def __init__(self, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
-                 futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
+                 src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
                  volume_mov_ave_n_config: dict[str, int], volume_mov_ave_n_default: int,
                  calendar: CCalendar, verbose: bool):
         # unique member
@@ -33,8 +33,8 @@ class CDbByInstrumentSQLMajorMinor(CDbByInstrumentSQL):
             "value_columns": {"n_contract": "TEXT", "d_contract": "TEXT"},
         }) for instrument_id in instrument_ids]
         super().__init__(db_save_dir=db_save_dir, db_save_name=db_save_name, tables=tables, run_mode=run_mode,
-                         futures_md_structure_path=futures_md_structure_path, futures_md_db_name=futures_md_db_name,
-                         src_tab_name=src_tab_name, futures_md_dir=futures_md_dir,
+                         src_db_structure_path=src_db_structure_path, src_db_name=src_db_name,
+                         src_tab_name=src_tab_name, src_db_dir=src_db_dir,
                          calendar=calendar, verbose=verbose)
 
     @staticmethod
@@ -57,7 +57,7 @@ class CDbByInstrumentSQLMajorMinor(CDbByInstrumentSQL):
         base_date = self.calendar.get_next_date(iter_dates[0], -volume_mov_ave_n + 1)
 
         # --- load historical data
-        db_reader = self.get_reader()
+        db_reader = self.get_src_reader()
         md_df = db_reader.read_by_instrument_and_time_window(
             t_instrument=instrument,
             t_value_columns=["trade_date", "loc_id", "volume"],
@@ -98,10 +98,10 @@ def cal_major_minor(
     db_by_instrument = CDbByInstrumentSQLMajorMinor(
         db_save_dir=db_save_dir, db_save_name=db_save_name, instrument_ids=instrument_ids,
         run_mode=run_mode,
-        futures_md_structure_path=futures_md_structure_path,
-        futures_md_db_name=futures_md_db_name,
+        src_db_structure_path=futures_md_structure_path,
+        src_db_name=futures_md_db_name,
         src_tab_name=src_tab_name,
-        futures_md_dir=futures_md_dir,
+        src_db_dir=futures_md_dir,
         volume_mov_ave_n_config=volume_mov_ave_n_config,
         volume_mov_ave_n_default=volume_mov_ave_n_default,
         calendar=calendar,

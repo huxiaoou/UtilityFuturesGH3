@@ -6,22 +6,22 @@ from skyrim.falkreath import CTable, CManagerLibReader, CManagerLibWriter
 
 
 class CDbByInstrumentBase(object):
-    def __init__(self, futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
+    def __init__(self, src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
                  calendar: CCalendar):
         # --- init lib reader
-        self.m_ftr_md_struct = futures_md_structure_path
-        self.m_ftr_md_db_name = futures_md_db_name
+        self.m_src_db_struct = src_db_structure_path
+        self.m_src_db_name = src_db_name
         self.m_src_tab_name = src_tab_name
-        self.m_ftr_md_dir = futures_md_dir
-        with open(self.m_ftr_md_struct, "r") as j:
-            md_table_struct = json.load(j)[self.m_ftr_md_db_name][self.m_src_tab_name]
+        self.m_src_db_dir = src_db_dir
+        with open(self.m_src_db_struct, "r") as j:
+            md_table_struct = json.load(j)[self.m_src_db_name][self.m_src_tab_name]
         self.md_table = CTable(t_table_struct=md_table_struct)
 
         # --- set calendar reference
         self.calendar: CCalendar = calendar
 
-    def get_reader(self) -> CManagerLibReader:
-        db_reader = CManagerLibReader(t_db_save_dir=self.m_ftr_md_dir, t_db_name=self.m_ftr_md_db_name + ".db")
+    def get_src_reader(self) -> CManagerLibReader:
+        db_reader = CManagerLibReader(t_db_save_dir=self.m_src_db_dir, t_db_name=self.m_src_db_name + ".db")
         db_reader.set_default(t_default_table_name=self.md_table.m_table_name)
         return db_reader
 
@@ -37,9 +37,9 @@ class CDbByInstrumentBase(object):
 
 class CDbByInstrumentCSV(CDbByInstrumentBase):
     def __init__(self, md_by_instru_dir: str, price_types: list[str],
-                 futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
+                 src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
                  calendar: CCalendar):
-        super().__init__(futures_md_structure_path, futures_md_db_name, src_tab_name, futures_md_dir, calendar)
+        super().__init__(src_db_structure_path, src_db_name, src_tab_name, src_db_dir, calendar)
         self.m_md_by_instru_dir = md_by_instru_dir
         self.m_price_types = price_types
         self.m_price_file_prototype = "{}.md.{}.csv.gz"
@@ -61,10 +61,10 @@ class CDbByInstrumentCSV(CDbByInstrumentBase):
 
 class CDbByInstrumentSQL(CDbByInstrumentBase):
     def __init__(self, db_save_dir: str, db_save_name: str, tables: list[CTable], run_mode: str,
-                 futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
+                 src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
                  calendar: CCalendar, verbose: bool):
 
-        super().__init__(futures_md_structure_path, futures_md_db_name, src_tab_name, futures_md_dir, calendar)
+        super().__init__(src_db_structure_path, src_db_name, src_tab_name, src_db_dir, calendar)
 
         # --- init lib writer
         self.m_by_instru_db = CManagerLibWriter(db_save_dir, db_save_name)
