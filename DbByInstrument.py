@@ -14,15 +14,15 @@ class CDbByInstrumentBase(object):
         self.m_src_tab_name = src_tab_name
         self.m_src_db_dir = src_db_dir
         with open(self.m_src_db_struct, "r") as j:
-            md_table_struct = json.load(j)[self.m_src_db_name][self.m_src_tab_name]
-        self.md_table = CTable(t_table_struct=md_table_struct)
+            src_table_struct = json.load(j)[self.m_src_db_name][self.m_src_tab_name]
+        self.src_table = CTable(t_table_struct=src_table_struct)
 
         # --- set calendar reference
         self.calendar: CCalendar = calendar
 
     def get_src_reader(self) -> CManagerLibReader:
         db_reader = CManagerLibReader(t_db_save_dir=self.m_src_db_dir, t_db_name=self.m_src_db_name + ".db")
-        db_reader.set_default(t_default_table_name=self.md_table.m_table_name)
+        db_reader.set_default(t_default_table_name=self.src_table.m_table_name)
         return db_reader
 
     def check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> bool:
@@ -32,6 +32,9 @@ class CDbByInstrumentBase(object):
         pass
 
     def close(self):
+        pass
+
+    def print_tips(self):
         pass
 
 

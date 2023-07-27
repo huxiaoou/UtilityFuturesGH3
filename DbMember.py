@@ -1,38 +1,33 @@
 """
 created @ 2023-07-27
-0.  to summary volume, amount, and oi information by Instrument
-1.  use argument t_src_tab_name to choose the source of md,
-    {
-        "CTable": "WDS",
-        "CTable2": "TSDB",
-    }
+0.  to summary volume, long position and short position of members by Instrument
 """
 
 import datetime as dt
 import pandas as pd
-from skyrim.whiterun import CCalendar, CInstrumentInfoTable
+from skyrim.whiterun import CCalendar
 from skyrim.falkreath import CTable
 from DbByInstrument import CDbByInstrumentSQL
 
 
-class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
+class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
     def __init__(self, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
                  src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
                  vo_adj_split_date: str,
-                 calendar: CCalendar, instru_info_table: CInstrumentInfoTable, verbose: bool):
+                 calendar: CCalendar, verbose: bool):
         self.m_vo_adj_split_date = vo_adj_split_date  # "20200101"
-        self.m_instru_info_table = instru_info_table
 
         # init tables
         tables = [CTable(t_table_struct={
             "table_name": instrument_id.replace(".", "_"),
-            "primary_keys": {"trade_date": "TEXT"},
+            "primary_keys": {"trade_date": "TEXT", "member": "TEXT"},
             "value_columns": {
-                "volume": "INTEGER",
-                "amount": "REAL",
-                "oi": "INTEGER",
-                "sizeClose": "REAL",
-                "sizeSettle": "REAL",
+                "volumeSum": "INTEGER",
+                "volumeDlt": "INTEGER",
+                "lngSum": "INTEGER",
+                "lngDlt": "INTEGER",
+                "srtSum": "INTEGER",
+                "srtDlt": "INTEGER",
             },
         }) for instrument_id in instrument_ids]
         super().__init__(db_save_dir=db_save_dir, db_save_name=db_save_name, tables=tables, run_mode=run_mode,
@@ -40,9 +35,10 @@ class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
                          src_tab_name=src_tab_name, src_db_dir=src_db_dir,
                          calendar=calendar, verbose=verbose)
 
-    def __update_volume_like_data(self, instrument_id: str, bgn_date: str, stp_date: str):
+    def __update_member_data(self, instrument_id: str, bgn_date: str, stp_date: str):
         instrument, exchange = instrument_id.split(".")
-        contract_multiplier = self.m_instru_info_table.get_multiplier(instrument_id)
+        if exchange in ["CFE"]:
+            return pd.DataFrame()
 
         # --- load historical data
         db_reader = self.get_src_reader()
@@ -50,41 +46,49 @@ class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
             ("trade_date", ">=", bgn_date),
             ("trade_date", "<", stp_date),
             ("instrument", "=", instrument),
-        ], t_value_columns=["trade_date", "loc_id", "close", "settle", "volume", "amount", "oi"],
+        ], t_value_columns=["trade_date", "loc_id", "member", "rnk_type", "pos_qty", "pos_dlt"],
         ).rename(mapper={"loc_id": "contract"}, axis=1)
         db_reader.close()
 
-        # --- fillna
-        md_df[["volume", "amount", "oi"]] = md_df[["volume", "amount", "oi"]].fillna(0)
-        md_df["sizeClose"] = md_df["close"] * md_df["oi"] * contract_multiplier
-        md_df["sizeSettle"] = md_df["settle"] * md_df["oi"] * contract_multiplier
-        md_df[["sizeClose", "sizeSettle"]] = md_df[["sizeClose", "sizeSettle"]].fillna(0)
+        # --- transform
+        member_df = pd.pivot_table(data=md_df, values=["pos_qty", "pos_dlt"], index=["trade_date", "member"], columns=["rnk_type"], aggfunc=sum).fillna(0)
+        # vo_adj_ratio = 1 if exchange in ["CFE"] else [2 if trade_date < self.m_vo_adj_split_date else 1 for trade_date, _ in member_df.index]
+        # member_df = member_df.div(vo_adj_ratio, axis="index")
+        member_df.reset_index(inplace=True)
 
-        # --- update md
-        volume_df = pd.pivot_table(data=md_df, values=["volume", "amount", "oi", "sizeClose", "sizeSettle"], index="trade_date", aggfunc=sum)
-        vo_adj_ratio = 1 if exchange in ["CFE"] else [2 if trade_date < self.m_vo_adj_split_date else 1 for trade_date in volume_df.index]
-        volume_df = volume_df.div(vo_adj_ratio, axis="index")
-        volume_df.reset_index(inplace=True)
+        if instrument_id in ["Y.DCE", "CF.CZC", "RB.SHF"]:
+            test_df = pd.pivot_table(data=md_df, values=["pos_qty", "pos_dlt"], index=["trade_date"], columns=["rnk_type"], aggfunc=sum).fillna(0)
+            print(instrument_id, test_df.head(20))
+        print(f"... member position information of {instrument_id:>6s} are aggregated")
 
         # --- column selection
-        return volume_df[["trade_date", "volume", "amount", "oi", "sizeClose", "sizeSettle"]]
+        return member_df[[
+            ("trade_date", ""),
+            ("member", ""),
+            ("pos_qty", "1"),
+            ("pos_dlt", "1"),
+            ("pos_qty", "2"),
+            ("pos_dlt", "2"),
+            ("pos_qty", "3"),
+            ("pos_dlt", "3"),
+        ]]
 
     def get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
         if self.check_continuity(instrument_id, run_mode, bgn_date):
-            update_df = self.__update_volume_like_data(instrument_id, bgn_date, stp_date)
+            update_df = self.__update_member_data(instrument_id, bgn_date, stp_date)
             instru_tab_name = instrument_id.replace(".", "_")
             self.save(update_df=update_df, using_index=False, table_name=instru_tab_name)
         return 0
 
 
-def cal_volume(
+def cal_member(
         db_save_dir: str, db_save_name: str, instrument_ids: list[str],
         run_mode: str, bgn_date: str, stp_date: str,
         src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
         vo_adj_split_date: str,
-        calendar: CCalendar, instru_info_table: CInstrumentInfoTable, verbose: bool,
+        calendar: CCalendar, verbose: bool,
 ):
-    db_by_instrument = CDbByInstrumentSQLVolume(
+    db_by_instrument = CDbByInstrumentSQLMember(
         db_save_dir=db_save_dir, db_save_name=db_save_name, instrument_ids=instrument_ids,
         run_mode=run_mode,
         src_db_structure_path=src_db_structure_path,
@@ -93,7 +97,6 @@ def cal_volume(
         src_db_dir=src_db_dir,
         vo_adj_split_date=vo_adj_split_date,
         calendar=calendar,
-        instru_info_table=instru_info_table,
         verbose=verbose,
     )
 
@@ -102,6 +105,6 @@ def cal_volume(
         db_by_instrument.get_update_data_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
     db_by_instrument.close()
     t1 = dt.datetime.now()
-    print("... volume, amount, oi, sizeClose and sizeSettle calculated.")
+    print("... member information are calculated.")
     print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
     return 0

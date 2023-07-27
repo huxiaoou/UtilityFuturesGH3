@@ -1,11 +1,14 @@
 import argparse
 import datetime as dt
 from skyrim.whiterun import CCalendar, CInstrumentInfoTable
-from utility_futures_setup import global_config, futures_md_structure_path, futures_md_db_name, futures_md_dir, \
-    calendar_path, futures_instru_info_path, \
-    futures_by_instrument_dir, major_minor_db_name, major_return_db_name, instrument_volume_db_name, instrument_member_db_name, \
-    md_by_instru_dir, fundamental_by_instru_dir, \
-    custom_ts_db_path, futures_fundamental_dir, futures_fundamental_db_name
+from utility_futures_setup import (global_config,
+                                   futures_md_structure_path, futures_md_db_name, futures_md_dir,
+                                   futures_fundamental_structure_path, futures_fundamental_db_name, futures_fundamental_dir,
+                                   custom_ts_db_path,
+                                   calendar_path, futures_instru_info_path,
+                                   futures_by_instrument_dir, major_minor_db_name, major_return_db_name, instrument_volume_db_name, instrument_member_db_name,
+                                   md_by_instru_dir, fundamental_by_instru_dir,
+                                   )
 
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(description="Entry point of this project", formatter_class=argparse.RawTextHelpFormatter)
@@ -28,7 +31,7 @@ if __name__ == "__main__":
     bgn_date, stp_date = args.bgn, args.stp
     stp_date = (dt.datetime.strptime(bgn_date, "%Y%m%d") + dt.timedelta(days=1)).strftime("%Y%m%d") if stp_date is None else stp_date
     src_type = args.source.upper()
-    src_tab_name = "CTable2" if src_type == "TSDB" else "CTable"
+    src_tab_name_md = "CTable2" if src_type == "TSDB" else "CTable"
 
     # manual config
     concerned_universe = global_config["futures"]["concerned_universe"]
@@ -37,6 +40,7 @@ if __name__ == "__main__":
     major_return_price_type = "close"
     vo_adj_split_date = "20200101"
     price_types = ["open", "close", "settle"]
+    src_tab_name_member = "CTablePositionC"
 
     # shared calendar and instru_info_table
     calendar = CCalendar(calendar_path)
@@ -52,7 +56,7 @@ if __name__ == "__main__":
             run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
             futures_md_structure_path=futures_md_structure_path,
             futures_md_db_name=futures_md_db_name,
-            src_tab_name=src_tab_name,
+            src_tab_name=src_tab_name_md,
             futures_md_dir=futures_md_dir,
             volume_mov_ave_n_config=volume_mov_ave_n_config,
             volume_mov_ave_n_default=volume_mov_ave_n_default,
@@ -67,7 +71,7 @@ if __name__ == "__main__":
             run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
             futures_md_structure_path=futures_md_structure_path,
             futures_md_db_name=futures_md_db_name,
-            src_tab_name=src_tab_name,
+            src_tab_name=src_tab_name_md,
             futures_md_dir=futures_md_dir,
             major_return_price_type=major_return_price_type,
             vo_adj_split_date=vo_adj_split_date,
@@ -85,7 +89,7 @@ if __name__ == "__main__":
             run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
             futures_md_structure_path=futures_md_structure_path,
             futures_md_db_name=futures_md_db_name,
-            src_tab_name=src_tab_name,
+            src_tab_name=src_tab_name_md,
             futures_md_dir=futures_md_dir,
             calendar=calendar,
         )
@@ -119,13 +123,28 @@ if __name__ == "__main__":
         cal_volume(
             db_save_dir=futures_by_instrument_dir, db_save_name=instrument_volume_db_name, instrument_ids=concerned_universe,
             run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
-            futures_md_structure_path=futures_md_structure_path,
-            futures_md_db_name=futures_md_db_name,
-            src_tab_name=src_tab_name,
-            futures_md_dir=futures_md_dir,
+            src_db_structure_path=futures_md_structure_path,
+            src_db_name=futures_md_db_name,
+            src_tab_name=src_tab_name_md,
+            src_db_dir=futures_md_dir,
             vo_adj_split_date=vo_adj_split_date,
             calendar=calendar,
             instru_info_table=instru_info_table,
+            verbose=False
+        )
+    elif switch in ["MBR"]:
+        from DbMember import cal_member
+
+        cal_member(
+            # db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name, instrument_ids=concerned_universe,
+            db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name, instrument_ids=["Y.DCE", "CF.CZC", "RB.SHF", "IC.CFE"],
+            run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
+            src_db_structure_path=futures_fundamental_structure_path,
+            src_db_name=futures_fundamental_db_name,
+            src_tab_name=src_tab_name_member,
+            src_db_dir=futures_fundamental_dir,
+            vo_adj_split_date=vo_adj_split_date,
+            calendar=calendar,
             verbose=False
         )
     else:
