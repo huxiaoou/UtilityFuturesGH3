@@ -1,5 +1,7 @@
 import json
 import os
+import datetime as dt
+import multiprocessing as mp
 import pandas as pd
 from skyrim.whiterun import CCalendar
 from skyrim.falkreath import CTable, CManagerLibReader, CManagerLibWriter
@@ -37,15 +39,28 @@ class CDbByInstrumentBase(object):
     def print_tips(self):
         pass
 
+    def instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
+        pass
+
+    def main_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
+        t0 = dt.datetime.now()
+        self.instrument_loop(instrument_ids, run_mode, bgn_date, stp_date)
+        self.close()
+        t1 = dt.datetime.now()
+        self.print_tips()
+        print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
+        return 0
+
 
 class CDbByInstrumentCSV(CDbByInstrumentBase):
-    def __init__(self, md_by_instru_dir: str, price_types: list[str],
+    def __init__(self, md_by_instru_dir: str, price_types: list[str], proc_num: int,
                  src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
                  calendar: CCalendar):
         super().__init__(src_db_structure_path, src_db_name, src_tab_name, src_db_dir, calendar)
         self.m_md_by_instru_dir = md_by_instru_dir
         self.m_price_types = price_types
         self.m_price_file_prototype = "{}.md.{}.csv.gz"
+        self.m_proc_num = proc_num
 
     def check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> bool:
         if run_mode in ["A", "APPEND"]:
@@ -60,6 +75,14 @@ class CDbByInstrumentCSV(CDbByInstrumentBase):
                     print(f"... Table for {instrument_id:>6s}-{price_type} is not updated")
                     return False
         return True
+
+    def instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
+        pool = mp.Pool(processes=self.m_proc_num)
+        for instrument_id in instrument_ids:
+            pool.apply_async(self.get_update_data_by_instrument, args=(instrument_id, run_mode, bgn_date, stp_date))
+        pool.close()
+        pool.join()
+        return 0
 
 
 class CDbByInstrumentSQL(CDbByInstrumentBase):
@@ -100,6 +123,11 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
             t_using_default_table=False,
             t_table_name=table_name,
         )
+        return 0
+
+    def instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
+        for instrument_id in instrument_ids:
+            self.get_update_data_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
         return 0
 
     def close(self):

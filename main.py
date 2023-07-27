@@ -49,20 +49,34 @@ if __name__ == "__main__":
 
     # main
     if switch in ["MM"]:
-        from DbMajorMinor import cal_major_minor
+        from DbMajorMinor import CDbByInstrumentSQLMajorMinor
 
-        cal_major_minor(
+        db_by_instrument = CDbByInstrumentSQLMajorMinor(
             db_save_dir=futures_by_instrument_dir, db_save_name=major_minor_db_name, instrument_ids=concerned_universe,
-            run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
-            futures_md_structure_path=futures_md_structure_path,
-            futures_md_db_name=futures_md_db_name,
+            run_mode=run_mode,
+            src_db_structure_path=futures_md_structure_path,
+            src_db_name=futures_md_db_name,
             src_tab_name=src_tab_name_md,
-            futures_md_dir=futures_md_dir,
+            src_db_dir=futures_md_dir,
             volume_mov_ave_n_config=volume_mov_ave_n_config,
             volume_mov_ave_n_default=volume_mov_ave_n_default,
             calendar=calendar,
-            verbose=False
+            verbose=False,
         )
+        db_by_instrument.main_loop(instrument_ids=concerned_universe, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
+
+        # cal_major_minor(
+        #     db_save_dir=futures_by_instrument_dir, db_save_name=major_minor_db_name, instrument_ids=concerned_universe,
+        #     run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
+        #     futures_md_structure_path=futures_md_structure_path,
+        #     futures_md_db_name=futures_md_db_name,
+        #     src_tab_name=src_tab_name_md,
+        #     futures_md_dir=futures_md_dir,
+        #     volume_mov_ave_n_config=volume_mov_ave_n_config,
+        #     volume_mov_ave_n_default=volume_mov_ave_n_default,
+        #     calendar=calendar,
+        #     verbose=False
+        # )
     elif switch in ["MR"]:
         from DbMajorReturn import cal_major_return
 
