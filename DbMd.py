@@ -78,6 +78,6 @@ def cal_md(
     pool.join()
     db_by_instrument.close()
     t1 = dt.datetime.now()
-    print("... market data calculated".format((t1 - t0).total_seconds()))
+    print("... market data calculated")
     print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
     return 0

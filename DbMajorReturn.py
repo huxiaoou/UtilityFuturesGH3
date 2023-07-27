@@ -188,6 +188,6 @@ def cal_major_return(
     db_by_instrument.close()
     major_minor_reader.close()
     t1 = dt.datetime.now()
-    print("... major return calculated".format((t1 - t0).total_seconds()))
+    print("... major return calculated")
     print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
     return 0

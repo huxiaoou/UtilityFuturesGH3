@@ -113,6 +113,6 @@ def cal_major_minor(
         db_by_instrument.get_update_data_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
     db_by_instrument.close()
     t1 = dt.datetime.now()
-    print("... major and minor contracts calculated".format((t1 - t0).total_seconds()))
+    print("... major and minor contracts calculated")
     print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
     return 0

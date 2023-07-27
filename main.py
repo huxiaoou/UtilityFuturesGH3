@@ -2,8 +2,10 @@ import argparse
 import datetime as dt
 from skyrim.whiterun import CCalendar, CInstrumentInfoTable
 from utility_futures_setup import global_config, futures_md_structure_path, futures_md_db_name, futures_md_dir, \
-    calendar_path, major_minor_dir, major_return_dir, major_minor_db_name, major_return_db_name, md_by_instru_dir, \
-    futures_instru_info_path, custom_ts_db_path, fundamental_by_instru_dir, futures_fundamental_dir, futures_fundamental_db_name
+    calendar_path, futures_instru_info_path, \
+    futures_by_instrument_dir, major_minor_db_name, major_return_db_name, instrument_volume_db_name, instrument_member_db_name, \
+    md_by_instru_dir, fundamental_by_instru_dir, \
+    custom_ts_db_path, futures_fundamental_dir, futures_fundamental_db_name
 
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(description="Entry point of this project", formatter_class=argparse.RawTextHelpFormatter)
@@ -36,15 +38,17 @@ if __name__ == "__main__":
     vo_adj_split_date = "20200101"
     price_types = ["open", "close", "settle"]
 
-    # shared calendar
+    # shared calendar and instru_info_table
     calendar = CCalendar(calendar_path)
+    instru_info_table = CInstrumentInfoTable(t_path=futures_instru_info_path, t_type="CSV",
+                                             t_index_label="windCode" if switch == "VOL" else "instrumentId")
 
     # main
     if switch in ["MM"]:
         from DbMajorMinor import cal_major_minor
 
         cal_major_minor(
-            db_save_dir=major_minor_dir, db_save_name=major_minor_db_name, instrument_ids=concerned_universe,
+            db_save_dir=futures_by_instrument_dir, db_save_name=major_minor_db_name, instrument_ids=concerned_universe,
             run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
             futures_md_structure_path=futures_md_structure_path,
             futures_md_db_name=futures_md_db_name,
@@ -59,7 +63,7 @@ if __name__ == "__main__":
         from DbMajorReturn import cal_major_return
 
         cal_major_return(
-            db_save_dir=major_return_dir, db_save_name=major_return_db_name, instrument_ids=concerned_universe,
+            db_save_dir=futures_by_instrument_dir, db_save_name=major_return_db_name, instrument_ids=concerned_universe,
             run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
             futures_md_structure_path=futures_md_structure_path,
             futures_md_db_name=futures_md_db_name,
@@ -67,7 +71,7 @@ if __name__ == "__main__":
             futures_md_dir=futures_md_dir,
             major_return_price_type=major_return_price_type,
             vo_adj_split_date=vo_adj_split_date,
-            major_minor_dir=major_minor_dir,
+            major_minor_dir=futures_by_instrument_dir,
             major_minor_db_name=major_minor_db_name,
             calendar=calendar,
             verbose=False
@@ -90,7 +94,6 @@ if __name__ == "__main__":
             from TSDBTranslator2.translator import CTSDBReader
             from CalFundFromTSDB import update_fundamental_by_instrument
 
-            instru_info_table = CInstrumentInfoTable(t_path=futures_instru_info_path, t_type="CSV")
             tsdb_reader = CTSDBReader(t_tsdb_path=custom_ts_db_path)
             update_fundamental_by_instrument(
                 t_bgn_date=bgn_date, t_stp_date=stp_date,
@@ -110,5 +113,20 @@ if __name__ == "__main__":
                 t_calendar=calendar,
                 t_fundamental_by_instru_dir=fundamental_by_instru_dir,
             )
+    elif switch in ["VOL"]:
+        from DbVolume import cal_volume
+
+        cal_volume(
+            db_save_dir=futures_by_instrument_dir, db_save_name=instrument_volume_db_name, instrument_ids=concerned_universe,
+            run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
+            futures_md_structure_path=futures_md_structure_path,
+            futures_md_db_name=futures_md_db_name,
+            src_tab_name=src_tab_name,
+            futures_md_dir=futures_md_dir,
+            vo_adj_split_date=vo_adj_split_date,
+            calendar=calendar,
+            instru_info_table=instru_info_table,
+            verbose=False
+        )
     else:
         print(f"... switch = {switch} is not a legal option, please check again.")

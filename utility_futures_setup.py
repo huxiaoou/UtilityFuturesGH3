@@ -49,12 +49,12 @@ futures_fundamental_structure_path = os.path.join(futures_fundamental_dir, globa
 futures_fundamental_db_name = global_config["futures"]["fundamental_db_name"]
 
 futures_by_instrument_dir = os.path.join(futures_dir, global_config["futures"]["by_instrument_dir"])
-major_minor_dir = os.path.join(futures_by_instrument_dir, global_config["futures"]["major_minor_dir"])
-major_return_dir = os.path.join(futures_by_instrument_dir, global_config["futures"]["major_return_dir"])
 md_by_instru_dir = os.path.join(futures_by_instrument_dir, global_config["futures"]["md_by_instru_dir"])
 fundamental_by_instru_dir = os.path.join(futures_by_instrument_dir, global_config["futures"]["fundamental_by_instru_dir"])
 major_minor_db_name = global_config["futures"]["major_minor_db"]
 major_return_db_name = global_config["futures"]["major_return_db"]
+instrument_volume_db_name = global_config["futures"]["instrument_volume_db"]
+instrument_member_db_name = global_config["futures"]["instrument_member_db"]
 
 # --- projects
 projects_dir = os.path.join(deploy_dir, global_config["projects"]["projects_save_dir"])
@@ -63,8 +63,7 @@ if __name__ == "__main__":
     from skyrim.winterhold import check_and_mkdir
 
     check_and_mkdir(futures_by_instrument_dir)
-    check_and_mkdir(major_minor_dir)
-    check_and_mkdir(major_return_dir)
+    check_and_mkdir(md_by_instru_dir)
     check_and_mkdir(fundamental_by_instru_dir)
 
     print("... directory system for this project has been established.")
