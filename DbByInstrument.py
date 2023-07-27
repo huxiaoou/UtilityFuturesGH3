@@ -82,8 +82,11 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
         if run_mode in ["A", "APPEND"]:
             dates_df = self.m_by_instru_db.read(
                 t_value_columns=["trade_date"], t_using_default_table=False, t_table_name=instrument_id.replace(".", "_"))
-            last_date = dates_df["trade_date"].iloc[-1]
-            expected_bgn_date = self.calendar.get_next_date(last_date, 1)
+            if len(dates_df) > 0:
+                last_date = dates_df["trade_date"].iloc[-1]
+                expected_bgn_date = self.calendar.get_next_date(last_date, 1)
+            else:
+                last_date = expected_bgn_date = "not available"
             if expected_bgn_date != bgn_date:
                 print(f"... Waring! Last date in {instrument_id:>6s} is {last_date}, and expected bgn_date should be {expected_bgn_date}, which is not equal to bgn_date {bgn_date}.")
                 print(f"... Table for {instrument_id:>6s} in {self.m_by_instru_db.m_db_name} is not updated")
