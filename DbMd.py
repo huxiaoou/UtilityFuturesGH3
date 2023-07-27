@@ -33,7 +33,7 @@ class CDbByInstrumentCSVMd(CDbByInstrumentCSV):
         db_reader.close()
 
         for price_type in self.m_price_types:
-            price_df = pd.pivot_table(data=md_df, values=price_type, index="trade_date", columns="contract", dropna=False)
+            price_df = pd.pivot_table(data=md_df, values=price_type, index="trade_date", columns="contract")
             price_df = price_df.reset_index().rename(mapper={"index": "trade_date"}, axis=1)
 
             # --- set destination
