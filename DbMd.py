@@ -13,10 +13,7 @@ created @ 2023-04-18
 """
 
 import os
-import datetime as dt
-import multiprocessing as mp
 import pandas as pd
-from skyrim.whiterun import CCalendar
 from DbByInstrument import CDbByInstrumentCSV
 
 
@@ -47,37 +44,11 @@ class CDbByInstrumentCSVMd(CDbByInstrumentCSV):
             new_price_df.to_csv(price_path, float_format="%.2f", index=False)
         return 0
 
-    def get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
-        if self.check_continuity(instrument_id, run_mode, bgn_date):
+    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
+        if self._check_continuity(instrument_id, run_mode, bgn_date):
             self.__update_md(instrument_id, run_mode, bgn_date, stp_date)
         return 0
 
-
-def cal_md(
-        proc_num: int,
-        md_by_instru_dir: str, price_types: list[str],
-        instrument_ids: list[str],
-        run_mode: str, bgn_date: str, stp_date: str,
-        futures_md_structure_path: str, futures_md_db_name: str, src_tab_name: str, futures_md_dir: str,
-        calendar: CCalendar):
-    db_by_instrument = CDbByInstrumentCSVMd(
-        md_by_instru_dir=md_by_instru_dir,
-        price_types=price_types,
-        src_db_structure_path=futures_md_structure_path,
-        src_db_name=futures_md_db_name,
-        src_tab_name=src_tab_name,
-        src_db_dir=futures_md_dir,
-        calendar=calendar,
-    )
-
-    t0 = dt.datetime.now()
-    pool = mp.Pool(processes=proc_num)
-    for instrument_id in instrument_ids:
-        pool.apply_async(db_by_instrument.get_update_data_by_instrument, args=(instrument_id, run_mode, bgn_date, stp_date))
-    pool.close()
-    pool.join()
-    db_by_instrument.close()
-    t1 = dt.datetime.now()
-    print("... market data calculated")
-    print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
-    return 0
+    def _print_tips(self):
+        print("... market data calculated")
+        return 0

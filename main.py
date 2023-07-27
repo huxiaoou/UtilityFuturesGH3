@@ -1,6 +1,7 @@
 import argparse
 import datetime as dt
 from skyrim.whiterun import CCalendar, CInstrumentInfoTable
+from skyrim.falkreath import CManagerLibReader
 from utility_futures_setup import (global_config,
                                    futures_md_structure_path, futures_md_db_name, futures_md_dir,
                                    futures_fundamental_structure_path, futures_fundamental_db_name, futures_fundamental_dir,
@@ -65,48 +66,38 @@ if __name__ == "__main__":
         )
         db_by_instrument.main_loop(instrument_ids=concerned_universe, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
 
-        # cal_major_minor(
-        #     db_save_dir=futures_by_instrument_dir, db_save_name=major_minor_db_name, instrument_ids=concerned_universe,
-        #     run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
-        #     futures_md_structure_path=futures_md_structure_path,
-        #     futures_md_db_name=futures_md_db_name,
-        #     src_tab_name=src_tab_name_md,
-        #     futures_md_dir=futures_md_dir,
-        #     volume_mov_ave_n_config=volume_mov_ave_n_config,
-        #     volume_mov_ave_n_default=volume_mov_ave_n_default,
-        #     calendar=calendar,
-        #     verbose=False
-        # )
     elif switch in ["MR"]:
-        from DbMajorReturn import cal_major_return
+        from DbMajorReturn import CDbByInstrumentSQLMajorReturn
 
-        cal_major_return(
+        major_minor_reader = CManagerLibReader(futures_by_instrument_dir, major_minor_db_name)
+        db_by_instrument = CDbByInstrumentSQLMajorReturn(
             db_save_dir=futures_by_instrument_dir, db_save_name=major_return_db_name, instrument_ids=concerned_universe,
-            run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
-            futures_md_structure_path=futures_md_structure_path,
-            futures_md_db_name=futures_md_db_name,
+            run_mode=run_mode,
+            src_db_structure_path=futures_md_structure_path,
+            src_db_name=futures_md_db_name,
             src_tab_name=src_tab_name_md,
-            futures_md_dir=futures_md_dir,
+            src_db_dir=futures_md_dir,
             major_return_price_type=major_return_price_type,
             vo_adj_split_date=vo_adj_split_date,
-            major_minor_dir=futures_by_instrument_dir,
-            major_minor_db_name=major_minor_db_name,
+            major_minor_reader=major_minor_reader,
             calendar=calendar,
-            verbose=False
+            verbose=False,
         )
+        db_by_instrument.main_loop(instrument_ids=concerned_universe, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
+        major_minor_reader.close()
     elif switch in ["MD"]:
-        from DbMd import cal_md
+        from DbMd import CDbByInstrumentCSVMd
 
-        cal_md(
-            proc_num=proc_num,
-            md_by_instru_dir=md_by_instru_dir, price_types=price_types, instrument_ids=concerned_universe,
-            run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
-            futures_md_structure_path=futures_md_structure_path,
-            futures_md_db_name=futures_md_db_name,
+        db_by_instrument = CDbByInstrumentCSVMd(
+            md_by_instru_dir=md_by_instru_dir,
+            price_types=price_types, proc_num=proc_num,
+            src_db_structure_path=futures_md_structure_path,
+            src_db_name=futures_md_db_name,
             src_tab_name=src_tab_name_md,
-            futures_md_dir=futures_md_dir,
+            src_db_dir=futures_md_dir,
             calendar=calendar,
         )
+        db_by_instrument.main_loop(instrument_ids=concerned_universe, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
     elif switch in ["FD"]:
         if src_type == "TSDB":
             from TSDBTranslator2.translator import CTSDBReader
@@ -132,11 +123,11 @@ if __name__ == "__main__":
                 t_fundamental_by_instru_dir=fundamental_by_instru_dir,
             )
     elif switch in ["VOL"]:
-        from DbVolume import cal_volume
+        from DbVolume import CDbByInstrumentSQLVolume
 
-        cal_volume(
+        db_by_instrument = CDbByInstrumentSQLVolume(
             db_save_dir=futures_by_instrument_dir, db_save_name=instrument_volume_db_name, instrument_ids=concerned_universe,
-            run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
+            run_mode=run_mode,
             src_db_structure_path=futures_md_structure_path,
             src_db_name=futures_md_db_name,
             src_tab_name=src_tab_name_md,
@@ -144,22 +135,23 @@ if __name__ == "__main__":
             vo_adj_split_date=vo_adj_split_date,
             calendar=calendar,
             instru_info_table=instru_info_table,
-            verbose=False
+            verbose=False,
         )
+        db_by_instrument.main_loop(instrument_ids=concerned_universe, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
     elif switch in ["MBR"]:
-        from DbMember import cal_member
+        from DbMember import CDbByInstrumentSQLMember
 
-        cal_member(
-            # db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name, instrument_ids=concerned_universe,
-            db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name, instrument_ids=["Y.DCE", "CF.CZC", "RB.SHF", "IC.CFE"],
-            run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date,
+        db_by_instrument = CDbByInstrumentSQLMember(
+            db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name, instrument_ids=concerned_universe,
+            run_mode=run_mode,
             src_db_structure_path=futures_fundamental_structure_path,
             src_db_name=futures_fundamental_db_name,
             src_tab_name=src_tab_name_member,
             src_db_dir=futures_fundamental_dir,
-            vo_adj_split_date=vo_adj_split_date,
             calendar=calendar,
-            verbose=False
+            verbose=False,
         )
+        db_by_instrument.main_loop(instrument_ids=concerned_universe, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
+
     else:
         print(f"... switch = {switch} is not a legal option, please check again.")

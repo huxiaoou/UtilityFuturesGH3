@@ -3,7 +3,6 @@ created @ 2023-07-27
 0.  to summary volume, long position and short position of members by Instrument
 """
 
-import datetime as dt
 import pandas as pd
 from skyrim.whiterun import CCalendar
 from skyrim.falkreath import CTable
@@ -13,9 +12,9 @@ from DbByInstrument import CDbByInstrumentSQL
 class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
     def __init__(self, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
                  src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
-                 vo_adj_split_date: str,
+                 # vo_adj_split_date: str,
                  calendar: CCalendar, verbose: bool):
-        self.m_vo_adj_split_date = vo_adj_split_date  # "20200101"
+        # self.m_vo_adj_split_date = vo_adj_split_date  # "20200101"
 
         # init tables
         tables = [CTable(t_table_struct={
@@ -73,38 +72,13 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
             ("pos_dlt", "3"),
         ]]
 
-    def get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
-        if self.check_continuity(instrument_id, run_mode, bgn_date):
+    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
+        if self._check_continuity(instrument_id, run_mode, bgn_date):
             update_df = self.__update_member_data(instrument_id, bgn_date, stp_date)
             instru_tab_name = instrument_id.replace(".", "_")
-            self.save(update_df=update_df, using_index=False, table_name=instru_tab_name)
+            self._save(update_df=update_df, using_index=False, table_name=instru_tab_name)
         return 0
 
-
-def cal_member(
-        db_save_dir: str, db_save_name: str, instrument_ids: list[str],
-        run_mode: str, bgn_date: str, stp_date: str,
-        src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
-        vo_adj_split_date: str,
-        calendar: CCalendar, verbose: bool,
-):
-    db_by_instrument = CDbByInstrumentSQLMember(
-        db_save_dir=db_save_dir, db_save_name=db_save_name, instrument_ids=instrument_ids,
-        run_mode=run_mode,
-        src_db_structure_path=src_db_structure_path,
-        src_db_name=src_db_name,
-        src_tab_name=src_tab_name,
-        src_db_dir=src_db_dir,
-        vo_adj_split_date=vo_adj_split_date,
-        calendar=calendar,
-        verbose=verbose,
-    )
-
-    t0 = dt.datetime.now()
-    for instrument_id in instrument_ids:
-        db_by_instrument.get_update_data_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
-    db_by_instrument.close()
-    t1 = dt.datetime.now()
-    print("... member information are calculated.")
-    print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
-    return 0
+    def _print_tips(self):
+        print("... member information are calculated.")
+        return 0

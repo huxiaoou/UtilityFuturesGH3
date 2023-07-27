@@ -27,27 +27,27 @@ class CDbByInstrumentBase(object):
         db_reader.set_default(t_default_table_name=self.src_table.m_table_name)
         return db_reader
 
-    def check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> bool:
+    def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> bool:
         pass
 
-    def get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
+    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
         pass
 
     def close(self):
         pass
 
-    def print_tips(self):
+    def _print_tips(self):
         pass
 
-    def instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
+    def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
         pass
 
     def main_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
         t0 = dt.datetime.now()
-        self.instrument_loop(instrument_ids, run_mode, bgn_date, stp_date)
+        self._instrument_loop(instrument_ids, run_mode, bgn_date, stp_date)
         self.close()
         t1 = dt.datetime.now()
-        self.print_tips()
+        self._print_tips()
         print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
         return 0
 
@@ -62,7 +62,7 @@ class CDbByInstrumentCSV(CDbByInstrumentBase):
         self.m_price_file_prototype = "{}.md.{}.csv.gz"
         self.m_proc_num = proc_num
 
-    def check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> bool:
+    def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> bool:
         if run_mode in ["A", "APPEND"]:
             for price_type in self.m_price_types:
                 price_file = self.m_price_file_prototype.format(instrument_id, price_type)
@@ -76,10 +76,10 @@ class CDbByInstrumentCSV(CDbByInstrumentBase):
                     return False
         return True
 
-    def instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
+    def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
         pool = mp.Pool(processes=self.m_proc_num)
         for instrument_id in instrument_ids:
-            pool.apply_async(self.get_update_data_by_instrument, args=(instrument_id, run_mode, bgn_date, stp_date))
+            pool.apply_async(self._get_update_data_by_instrument, args=(instrument_id, run_mode, bgn_date, stp_date))
         pool.close()
         pool.join()
         return 0
@@ -101,7 +101,7 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
             t_verbose=verbose,
         )
 
-    def check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> bool:
+    def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> bool:
         if run_mode in ["A", "APPEND"]:
             dates_df = self.m_by_instru_db.read(
                 t_value_columns=["trade_date"], t_using_default_table=False, t_table_name=instrument_id.replace(".", "_"))
@@ -116,7 +116,7 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
                 return False
         return True
 
-    def save(self, update_df: pd.DataFrame, using_index: bool, table_name: str):
+    def _save(self, update_df: pd.DataFrame, using_index: bool, table_name: str):
         self.m_by_instru_db.update(
             t_update_df=update_df,
             t_using_index=using_index,
@@ -125,9 +125,9 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
         )
         return 0
 
-    def instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
+    def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
         for instrument_id in instrument_ids:
-            self.get_update_data_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
+            self._get_update_data_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
         return 0
 
     def close(self):
