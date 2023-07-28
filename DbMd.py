@@ -20,7 +20,7 @@ from DbByInstrument import CDbByInstrumentCSV
 class CDbByInstrumentCSVMd(CDbByInstrumentCSV):
     def __update_md(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
         instrument, exchange = instrument_id.split(".")
-        db_reader = self.get_src_reader()
+        db_reader = self._get_src_reader()
         md_df = db_reader.read_by_conditions(t_conditions=[
             ("trade_date", ">=", bgn_date),
             ("trade_date", "<", stp_date),

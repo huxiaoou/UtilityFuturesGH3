@@ -56,7 +56,7 @@ class CDbByInstrumentSQLMajorMinor(CDbByInstrumentSQL):
         base_date = self.calendar.get_next_date(iter_dates[0], -volume_mov_ave_n + 1)
 
         # --- load historical data
-        db_reader = self.get_src_reader()
+        db_reader = self._get_src_reader()
         md_df = db_reader.read_by_instrument_and_time_window(
             t_instrument=instrument,
             t_value_columns=["trade_date", "loc_id", "volume"],

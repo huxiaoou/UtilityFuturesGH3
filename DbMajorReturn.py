@@ -66,7 +66,6 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
         return 0 if np.isnan(res) else res
 
     def __update_major_return(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
-
         instrument, exchange = instrument_id.split(".")
         this_prc_lbl, prev_prc_lbl = self.m_major_return_price_type, "prev_{}".format(self.m_major_return_price_type)
 
@@ -88,7 +87,7 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
             major_minor_df["vo_adj_ratio"] = [2 if trade_date < self.m_vo_adj_split_date else 1 for trade_date in major_minor_df["trade_date"]]
 
         # --- load historical data
-        db_reader = self.get_src_reader()
+        db_reader = self._get_src_reader()
         md_df = db_reader.read_by_conditions(t_conditions=[
             ("trade_date", ">=", base_date),
             ("trade_date", "<", stp_date),

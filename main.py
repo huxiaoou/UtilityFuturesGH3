@@ -65,7 +65,6 @@ if __name__ == "__main__":
             verbose=False,
         )
         db_by_instrument.main_loop(instrument_ids=concerned_universe, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
-
     elif switch in ["MR"]:
         from DbMajorReturn import CDbByInstrumentSQLMajorReturn
 

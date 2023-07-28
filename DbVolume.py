@@ -44,7 +44,7 @@ class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
         contract_multiplier = self.m_instru_info_table.get_multiplier(instrument_id)
 
         # --- load historical data
-        db_reader = self.get_src_reader()
+        db_reader = self._get_src_reader()
         md_df = db_reader.read_by_conditions(t_conditions=[
             ("trade_date", ">=", bgn_date),
             ("trade_date", "<", stp_date),

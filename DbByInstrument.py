@@ -22,7 +22,7 @@ class CDbByInstrumentBase(object):
         # --- set calendar reference
         self.calendar: CCalendar = calendar
 
-    def get_src_reader(self) -> CManagerLibReader:
+    def _get_src_reader(self) -> CManagerLibReader:
         db_reader = CManagerLibReader(t_db_save_dir=self.m_src_db_dir, t_db_name=self.m_src_db_name + ".db")
         db_reader.set_default(t_default_table_name=self.src_table.m_table_name)
         return db_reader
@@ -33,19 +33,19 @@ class CDbByInstrumentBase(object):
     def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
         pass
 
-    def close(self):
+    def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
         pass
 
     def _print_tips(self):
         pass
 
-    def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
-        pass
+    def _close(self):
+        return 0
 
     def main_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
         t0 = dt.datetime.now()
         self._instrument_loop(instrument_ids, run_mode, bgn_date, stp_date)
-        self.close()
+        self._close()
         t1 = dt.datetime.now()
         self._print_tips()
         print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
@@ -130,6 +130,6 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
             self._get_update_data_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
         return 0
 
-    def close(self):
+    def _close(self):
         self.m_by_instru_db.close()
         return 0
