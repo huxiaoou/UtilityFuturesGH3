@@ -8,7 +8,7 @@ from skyrim.falkreath import CTable, CManagerLibReader, CManagerLibWriter
 
 
 class CDbByInstrumentBase(object):
-    def __init__(self, src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
+    def __init__(self, proc_num: int, src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
                  calendar: CCalendar):
         # --- init lib reader
         self.m_src_db_struct = src_db_structure_path
@@ -22,6 +22,8 @@ class CDbByInstrumentBase(object):
         # --- set calendar reference
         self.calendar: CCalendar = calendar
 
+        self.m_proc_num = proc_num
+
     def _get_src_reader(self) -> CManagerLibReader:
         db_reader = CManagerLibReader(t_db_save_dir=self.m_src_db_dir, t_db_name=self.m_src_db_name + ".db")
         db_reader.set_default(t_default_table_name=self.src_table.m_table_name)
@@ -33,19 +35,28 @@ class CDbByInstrumentBase(object):
     def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
         pass
 
+    # def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
+    #     pass
+    #
+    # def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
+    #     for instrument_id in instrument_ids:
+    #         self._get_update_data_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
+    #     return 0
+
     def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
-        pass
+        pool = mp.Pool(processes=self.m_proc_num)
+        for instrument_id in instrument_ids:
+            pool.apply_async(self._get_update_data_by_instrument, args=(instrument_id, run_mode, bgn_date, stp_date))
+        pool.close()
+        pool.join()
+        return 0
 
     def _print_tips(self):
         pass
 
-    def _close(self):
-        return 0
-
     def main_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
         t0 = dt.datetime.now()
         self._instrument_loop(instrument_ids, run_mode, bgn_date, stp_date)
-        self._close()
         t1 = dt.datetime.now()
         self._print_tips()
         print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
@@ -53,14 +64,13 @@ class CDbByInstrumentBase(object):
 
 
 class CDbByInstrumentCSV(CDbByInstrumentBase):
-    def __init__(self, md_by_instru_dir: str, price_types: list[str], proc_num: int,
+    def __init__(self, proc_num: int, md_by_instru_dir: str, price_types: list[str],
                  src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
                  calendar: CCalendar):
-        super().__init__(src_db_structure_path, src_db_name, src_tab_name, src_db_dir, calendar)
+        super().__init__(proc_num, src_db_structure_path, src_db_name, src_tab_name, src_db_dir, calendar)
         self.m_md_by_instru_dir = md_by_instru_dir
         self.m_price_types = price_types
         self.m_price_file_prototype = "{}.md.{}.csv.gz"
-        self.m_proc_num = proc_num
 
     def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> int:
         if run_mode in ["A", "APPEND"]:
@@ -84,30 +94,24 @@ class CDbByInstrumentCSV(CDbByInstrumentBase):
                     return 2
         return 0
 
-    def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
-        pool = mp.Pool(processes=self.m_proc_num)
-        for instrument_id in instrument_ids:
-            pool.apply_async(self._get_update_data_by_instrument, args=(instrument_id, run_mode, bgn_date, stp_date))
-        pool.close()
-        pool.join()
-        return 0
-
 
 class CDbByInstrumentSQL(CDbByInstrumentBase):
-    def __init__(self, db_save_dir: str, db_save_name: str, tables: list[CTable], run_mode: str,
+    def __init__(self, proc_num: int, db_save_dir: str, db_save_name: str, tables: list[CTable], run_mode: str,
                  src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
                  calendar: CCalendar, verbose: bool):
 
-        super().__init__(src_db_structure_path, src_db_name, src_tab_name, src_db_dir, calendar)
+        super().__init__(proc_num, src_db_structure_path, src_db_name, src_tab_name, src_db_dir, calendar)
+        self.m_db_save_dir, self.m_db_save_name = db_save_dir, db_save_name
 
         # --- init lib writer
-        self.m_by_instru_db = CManagerLibWriter(db_save_dir, db_save_name)
+        self.m_by_instru_db = CManagerLibWriter(self.m_db_save_dir, self.m_db_save_name)
         self.m_by_instru_db.initialize_tables(
             t_tables=tables,
             t_remove_existence=run_mode in ["O", "OVERWRITE"],
             t_default_table_name="",
             t_verbose=verbose,
         )
+        self.m_by_instru_db.close()
 
     def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> int:
         """
@@ -120,8 +124,10 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
                  2: Overlapping warning, some data maybe overwrite
         """
         if run_mode in ["A", "APPEND"]:
+            self.m_by_instru_db.reconnect()
             dates_df = self.m_by_instru_db.read(t_value_columns=["trade_date"],
                                                 t_using_default_table=False, t_table_name=instrument_id.replace(".", "_"))
+            self.m_by_instru_db.close()
             if len(dates_df) > 0:
                 last_date = dates_df["trade_date"].iloc[-1]
                 expected_bgn_date = self.calendar.get_next_date(last_date, 1)
@@ -143,19 +149,12 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
         return 0
 
     def _save(self, update_df: pd.DataFrame, using_index: bool, table_name: str):
+        self.m_by_instru_db.reconnect()
         self.m_by_instru_db.update(
             t_update_df=update_df,
             t_using_index=using_index,
             t_using_default_table=False,
             t_table_name=table_name,
         )
-        return 0
-
-    def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
-        for instrument_id in instrument_ids:
-            self._get_update_data_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
-        return 0
-
-    def _close(self):
         self.m_by_instru_db.close()
         return 0

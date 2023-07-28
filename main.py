@@ -53,6 +53,7 @@ if __name__ == "__main__":
         from DbMajorMinor import CDbByInstrumentSQLMajorMinor
 
         db_by_instrument = CDbByInstrumentSQLMajorMinor(
+            proc_num=proc_num,
             db_save_dir=futures_by_instrument_dir, db_save_name=major_minor_db_name, instrument_ids=concerned_universe,
             run_mode=run_mode,
             src_db_structure_path=futures_md_structure_path,
@@ -70,6 +71,7 @@ if __name__ == "__main__":
 
         major_minor_reader = CManagerLibReader(futures_by_instrument_dir, major_minor_db_name)
         db_by_instrument = CDbByInstrumentSQLMajorReturn(
+            proc_num=proc_num,
             db_save_dir=futures_by_instrument_dir, db_save_name=major_return_db_name, instrument_ids=concerned_universe,
             run_mode=run_mode,
             src_db_structure_path=futures_md_structure_path,
@@ -125,6 +127,7 @@ if __name__ == "__main__":
         from DbVolume import CDbByInstrumentSQLVolume
 
         db_by_instrument = CDbByInstrumentSQLVolume(
+            proc_num=proc_num,
             db_save_dir=futures_by_instrument_dir, db_save_name=instrument_volume_db_name, instrument_ids=concerned_universe,
             run_mode=run_mode,
             src_db_structure_path=futures_md_structure_path,
@@ -141,6 +144,7 @@ if __name__ == "__main__":
         from DbMember import CDbByInstrumentSQLMember
 
         db_by_instrument = CDbByInstrumentSQLMember(
+            proc_num=proc_num,
             db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name, instrument_ids=concerned_universe,
             # db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name, instrument_ids=["RB.SHF", "Y.DCE", "SR.CZC"],
             run_mode=run_mode,
