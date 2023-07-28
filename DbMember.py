@@ -3,6 +3,7 @@ created @ 2023-07-27
 0.  to summary volume, long position and short position of members by Instrument
 """
 
+import datetime
 import pandas as pd
 from skyrim.whiterun import CCalendar
 from skyrim.falkreath import CTable
@@ -36,8 +37,6 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
 
     def __update_member_data(self, instrument_id: str, bgn_date: str, stp_date: str):
         instrument, exchange = instrument_id.split(".")
-        if exchange in ["CFE"]:
-            return pd.DataFrame()
 
         # --- load historical data
         db_reader = self._get_src_reader()
@@ -49,16 +48,14 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
         ).rename(mapper={"loc_id": "contract"}, axis=1)
         db_reader.close()
 
+        if len(md_df) == 0:
+            return pd.DataFrame()
+
         # --- transform
         member_df = pd.pivot_table(data=md_df, values=["pos_qty", "pos_dlt"], index=["trade_date", "member"], columns=["rnk_type"], aggfunc=sum).fillna(0)
-        # vo_adj_ratio = 1 if exchange in ["CFE"] else [2 if trade_date < self.m_vo_adj_split_date else 1 for trade_date, _ in member_df.index]
-        # member_df = member_df.div(vo_adj_ratio, axis="index")
-        member_df.reset_index(inplace=True)
+        member_df.reset_index(inplace=True)  # Make sure there is no necessary to adjust volume and position by dividing 2 before "20200101"
 
-        if instrument_id in ["Y.DCE", "CF.CZC", "RB.SHF"]:
-            test_df = pd.pivot_table(data=md_df, values=["pos_qty", "pos_dlt"], index=["trade_date"], columns=["rnk_type"], aggfunc=sum).fillna(0)
-            print(instrument_id, test_df.head(20))
-        print(f"... member position information of {instrument_id:>6s} are aggregated")
+        print(f"... @ {datetime.datetime.now()} member position information of {instrument_id:>6s} are aggregated")
 
         # --- column selection
         return member_df[[
@@ -73,7 +70,7 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
         ]]
 
     def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
-        if self._check_continuity(instrument_id, run_mode, bgn_date):
+        if self._check_continuity(instrument_id, run_mode, bgn_date) in [0, 1]:
             update_df = self.__update_member_data(instrument_id, bgn_date, stp_date)
             instru_tab_name = instrument_id.replace(".", "_")
             self._save(update_df=update_df, using_index=False, table_name=instru_tab_name)

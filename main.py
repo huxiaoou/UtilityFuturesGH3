@@ -31,7 +31,7 @@ if __name__ == "__main__":
     run_mode = None if switch in ["FD"] else args.mode.upper()
     bgn_date, stp_date = args.bgn, args.stp
     stp_date = (dt.datetime.strptime(bgn_date, "%Y%m%d") + dt.timedelta(days=1)).strftime("%Y%m%d") if stp_date is None else stp_date
-    src_type = args.source.upper()
+    src_type = None if switch in ["MBR"] else args.source.upper()
     src_tab_name_md = "CTable2" if src_type == "TSDB" else "CTable"
 
     # manual config
@@ -142,6 +142,7 @@ if __name__ == "__main__":
 
         db_by_instrument = CDbByInstrumentSQLMember(
             db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name, instrument_ids=concerned_universe,
+            # db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name, instrument_ids=["RB.SHF", "Y.DCE", "SR.CZC"],
             run_mode=run_mode,
             src_db_structure_path=futures_fundamental_structure_path,
             src_db_name=futures_fundamental_db_name,
@@ -151,6 +152,6 @@ if __name__ == "__main__":
             verbose=False,
         )
         db_by_instrument.main_loop(instrument_ids=concerned_universe, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
-
+        # db_by_instrument.main_loop(instrument_ids=["RB.SHF", "Y.DCE", "SR.CZC"], run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
     else:
         print(f"... switch = {switch} is not a legal option, please check again.")

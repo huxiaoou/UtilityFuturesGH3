@@ -3,7 +3,7 @@ import os
 import datetime as dt
 import multiprocessing as mp
 import pandas as pd
-from skyrim.whiterun import CCalendar
+from skyrim.whiterun import CCalendar, SetFontRed, SetFontYellow
 from skyrim.falkreath import CTable, CManagerLibReader, CManagerLibWriter
 
 
@@ -27,7 +27,7 @@ class CDbByInstrumentBase(object):
         db_reader.set_default(t_default_table_name=self.src_table.m_table_name)
         return db_reader
 
-    def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> bool:
+    def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> int:
         pass
 
     def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
@@ -62,7 +62,7 @@ class CDbByInstrumentCSV(CDbByInstrumentBase):
         self.m_price_file_prototype = "{}.md.{}.csv.gz"
         self.m_proc_num = proc_num
 
-    def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> bool:
+    def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> int:
         if run_mode in ["A", "APPEND"]:
             for price_type in self.m_price_types:
                 price_file = self.m_price_file_prototype.format(instrument_id, price_type)
@@ -70,11 +70,19 @@ class CDbByInstrumentCSV(CDbByInstrumentBase):
                 price_df = pd.read_csv(price_path, dtype={"trade_date": str})
                 last_date = price_df["trade_date"].iloc[-1]
                 expected_bgn_date = self.calendar.get_next_date(last_date, 1)
-                if expected_bgn_date != bgn_date:
-                    print(f"... Waring! Last date in {instrument_id:>6s}-{price_type} is {last_date}, and expected bgn_date should be {expected_bgn_date}, which is not equal to bgn_date {bgn_date}.")
-                    print(f"... Table for {instrument_id:>6s}-{price_type} is not updated")
-                    return False
-        return True
+                if expected_bgn_date == bgn_date:
+                    return 0
+                elif expected_bgn_date < bgn_date:
+                    print(f"... Waring! Last date of  {SetFontRed(f'{instrument_id:>6s}-{price_type}')} is {last_date}, "
+                          f"and expected bgn_date should be {SetFontRed(expected_bgn_date)}, but input bgn_date = {bgn_date}, "
+                          f"some days may be {SetFontYellow('omitted')}")
+                    return 1
+                else:  # expected_bgn_date > bgn_date:
+                    print(f"... Waring! Last date of  {SetFontRed(f'{instrument_id:>6s}-{price_type}')} is {last_date}, "
+                          f"and expected bgn_date should be {SetFontRed(expected_bgn_date)}, but input bgn_date = {bgn_date}, "
+                          f"some days may be {SetFontRed('overwritten')}")
+                    return 2
+        return 0
 
     def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
         pool = mp.Pool(processes=self.m_proc_num)
@@ -101,20 +109,38 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
             t_verbose=verbose,
         )
 
-    def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> bool:
+    def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> int:
+        """
+
+        :param instrument_id:
+        :param run_mode:
+        :param bgn_date:
+        :return: 0: No error
+                 1: Not continued warning, gap exists
+                 2: Overlapping warning, some data maybe overwrite
+        """
         if run_mode in ["A", "APPEND"]:
-            dates_df = self.m_by_instru_db.read(
-                t_value_columns=["trade_date"], t_using_default_table=False, t_table_name=instrument_id.replace(".", "_"))
+            dates_df = self.m_by_instru_db.read(t_value_columns=["trade_date"],
+                                                t_using_default_table=False, t_table_name=instrument_id.replace(".", "_"))
             if len(dates_df) > 0:
                 last_date = dates_df["trade_date"].iloc[-1]
                 expected_bgn_date = self.calendar.get_next_date(last_date, 1)
             else:
-                last_date = expected_bgn_date = "not available"
-            if expected_bgn_date != bgn_date:
-                print(f"... Waring! Last date in {instrument_id:>6s} is {last_date}, and expected bgn_date should be {expected_bgn_date}, which is not equal to bgn_date {bgn_date}.")
-                print(f"... Table for {instrument_id:>6s} in {self.m_by_instru_db.m_db_name} is not updated")
-                return False
-        return True
+                last_date = "not available"
+                expected_bgn_date = "20120104"
+            if expected_bgn_date == bgn_date:
+                return 0
+            elif expected_bgn_date < bgn_date:
+                print(f"... Waring! Last date of {SetFontRed(f'{instrument_id:>6s}')} is {last_date}, "
+                      f"and expected bgn_date should be {SetFontRed(expected_bgn_date)}, but input bgn_date = {bgn_date}, "
+                      f"some days may be {SetFontYellow('omitted')}")
+                return 1
+            else:  # expected_bgn_date > bgn_date
+                print(f"... Waring! Last date of {SetFontRed(f'{instrument_id:>6s}')} is {last_date}, "
+                      f"and expected bgn_date should be {SetFontRed(expected_bgn_date)}, but input bgn_date = {bgn_date}, "
+                      f"some days may be {SetFontRed('overwritten')}")
+                return 2
+        return 0
 
     def _save(self, update_df: pd.DataFrame, using_index: bool, table_name: str):
         self.m_by_instru_db.update(

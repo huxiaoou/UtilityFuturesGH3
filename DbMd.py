@@ -45,7 +45,7 @@ class CDbByInstrumentCSVMd(CDbByInstrumentCSV):
         return 0
 
     def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
-        if self._check_continuity(instrument_id, run_mode, bgn_date):
+        if self._check_continuity(instrument_id, run_mode, bgn_date) == 0:
             self.__update_md(instrument_id, run_mode, bgn_date, stp_date)
         return 0
 
