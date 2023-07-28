@@ -9,7 +9,7 @@ created @ 2023-07-27
 """
 
 import pandas as pd
-from skyrim.whiterun import CCalendar, CInstrumentInfoTable
+from skyrim.whiterun import CCalendar, CInstrumentInfoTable, SetFontGreen
 from skyrim.falkreath import CTable
 from DbByInstrument import CDbByInstrumentSQL
 
@@ -72,9 +72,9 @@ class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
         if self._check_continuity(instrument_id, run_mode, bgn_date) == 0:
             update_df = self.__update_volume_like_data(instrument_id, bgn_date, stp_date)
             instru_tab_name = instrument_id.replace(".", "_")
-            self._save(update_df=update_df, using_index=False, table_name=instru_tab_name)
+            self._save(instrument_id=instrument_id, update_df=update_df, using_index=False, table_name=instru_tab_name)
         return 0
 
     def _print_tips(self):
-        print("... volume, amount, oi, sizeClose and sizeSettle calculated.")
+        print(f"... {SetFontGreen('volume, amount, oi, sizeClose and sizeSettle')} are calculated")
         return 0

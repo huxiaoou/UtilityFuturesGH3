@@ -5,7 +5,7 @@ created @ 2023-07-27
 
 import datetime
 import pandas as pd
-from skyrim.whiterun import CCalendar
+from skyrim.whiterun import CCalendar, SetFontGreen
 from skyrim.falkreath import CTable
 from DbByInstrument import CDbByInstrumentSQL
 
@@ -13,9 +13,7 @@ from DbByInstrument import CDbByInstrumentSQL
 class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
     def __init__(self, proc_num: int, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
                  src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
-                 # vo_adj_split_date: str,
                  calendar: CCalendar, verbose: bool):
-        # self.m_vo_adj_split_date = vo_adj_split_date  # "20200101"
 
         # init tables
         tables = [CTable(t_table_struct={
@@ -52,10 +50,9 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
             return pd.DataFrame()
 
         # --- transform
+        # Make sure there is no necessary to adjust volume and position by dividing 2 before "20200101"
         member_df = pd.pivot_table(data=md_df, values=["pos_qty", "pos_dlt"], index=["trade_date", "member"], columns=["rnk_type"], aggfunc=sum).fillna(0)
-        member_df.reset_index(inplace=True)  # Make sure there is no necessary to adjust volume and position by dividing 2 before "20200101"
-
-        print(f"... @ {datetime.datetime.now()} member position information of {instrument_id:>6s} are aggregated")
+        member_df.reset_index(inplace=True)
 
         # --- column selection
         return member_df[[
@@ -73,9 +70,11 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
         if self._check_continuity(instrument_id, run_mode, bgn_date) in [0, 1]:
             update_df = self.__update_member_data(instrument_id, bgn_date, stp_date)
             instru_tab_name = instrument_id.replace(".", "_")
-            self._save(update_df=update_df, using_index=False, table_name=instru_tab_name)
+            self._save(instrument_id=instrument_id, update_df=update_df, using_index=False, table_name=instru_tab_name)
+            if run_mode in ["O", "OVERWRITE"]:
+                print(f"... @ {datetime.datetime.now()} member position information of {SetFontGreen(f'{instrument_id:>6s}')} are aggregated")
         return 0
 
     def _print_tips(self):
-        print("... member information are calculated.")
+        print(f"... {SetFontGreen('member position information')} are calculated")
         return 0

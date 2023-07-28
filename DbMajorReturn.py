@@ -18,7 +18,7 @@ created @ 2023-04-17
 
 import numpy as np
 import pandas as pd
-from skyrim.whiterun import CCalendar
+from skyrim.whiterun import CCalendar, SetFontGreen
 from skyrim.falkreath import CTable, CManagerLibReader
 from DbByInstrument import CDbByInstrumentSQL
 
@@ -27,12 +27,12 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
     def __init__(self, proc_num: int, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
                  src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
                  major_return_price_type: str, vo_adj_split_date: str,
-                 major_minor_reader: CManagerLibReader,
+                 major_minor_lib_dir: str, major_minor_lib_name: str,
                  calendar: CCalendar, verbose: bool):
 
         self.m_major_return_price_type = major_return_price_type  # "close"
         self.m_vo_adj_split_date = vo_adj_split_date  # "20200101"
-        self.major_minor_reader = major_minor_reader
+        self.m_major_minor_lib_dir, self.m_major_minor_lib_name = major_minor_lib_dir, major_minor_lib_name
 
         # init tables
         tables = [CTable(t_table_struct={
@@ -73,10 +73,13 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
         base_date = self.calendar.get_next_date(iter_dates[0], -1)
 
         # --- load major table
-        major_minor_df = self.major_minor_reader.read_by_conditions(t_conditions=[
+        major_minor_reader = CManagerLibReader(self.m_major_minor_lib_dir, self.m_major_minor_lib_name)
+        major_minor_reader.set_default(instrument_id.replace(".", "_"))
+        major_minor_df = major_minor_reader.read_by_conditions(t_conditions=[
             ("trade_date", ">=", base_date),
             ("trade_date", "<", stp_date),
         ], t_value_columns=["trade_date", "n_contract"], t_using_default_table=False, t_table_name=instrument_id.replace(".", "_"))
+        major_minor_reader.close()
         major_minor_df["prev_trade_date"] = major_minor_df["trade_date"].shift(1)
         major_minor_df = major_minor_df.loc[major_minor_df["trade_date"] >= bgn_date]
 
@@ -129,8 +132,10 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
             base_val_instru_idx = 1
             base_val_close_price = major_return_df["close"].dropna().iloc[0]
         else:
-            base_date_df = self.m_by_instru_db.read_by_date(t_trade_date=base_date, t_value_columns=["instru_idx", "closeC"],
-                                                            t_using_default_table=False, t_table_name=instrument_id.replace(".", "_"))
+            m_by_instru_db = CManagerLibReader(self.m_dst_db_save_dir, self.m_dst_db_save_name)
+            m_by_instru_db.set_default(t_default_table_name=instrument_id.replace(".", "_"))
+            base_date_df = m_by_instru_db.read_by_date(t_trade_date=base_date, t_value_columns=["instru_idx", "closeC"])
+            m_by_instru_db.close()
             base_val_instru_idx = base_date_df["instru_idx"].iloc[-1]
             base_val_close_price = base_date_df["closeC"].iloc[-1]
         major_return_df["instru_idx"] = (major_return_df["major_return"] + 1).cumprod() * base_val_instru_idx
@@ -153,9 +158,9 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
         if self._check_continuity(instrument_id, run_mode, bgn_date) == 0:
             update_df = self.__update_major_return(instrument_id, run_mode, bgn_date, stp_date)
             instru_tab_name = instrument_id.replace(".", "_")
-            self._save(update_df=update_df, using_index=False, table_name=instru_tab_name)
+            self._save(instrument_id=instrument_id, update_df=update_df, using_index=False, table_name=instru_tab_name)
         return 0
 
     def _print_tips(self):
-        print("... major return calculated")
+        print(f"... {SetFontGreen('major return')} calculated")
         return 0

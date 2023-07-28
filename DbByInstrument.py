@@ -3,7 +3,7 @@ import os
 import datetime as dt
 import multiprocessing as mp
 import pandas as pd
-from skyrim.whiterun import CCalendar, SetFontRed, SetFontYellow
+from skyrim.whiterun import CCalendar, SetFontRed, SetFontYellow, SetFontBlue
 from skyrim.falkreath import CTable, CManagerLibReader, CManagerLibWriter
 
 
@@ -35,14 +35,6 @@ class CDbByInstrumentBase(object):
     def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
         pass
 
-    # def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
-    #     pass
-    #
-    # def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
-    #     for instrument_id in instrument_ids:
-    #         self._get_update_data_by_instrument(instrument_id, run_mode, bgn_date, stp_date)
-    #     return 0
-
     def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
         pool = mp.Pool(processes=self.m_proc_num)
         for instrument_id in instrument_ids:
@@ -59,7 +51,7 @@ class CDbByInstrumentBase(object):
         self._instrument_loop(instrument_ids, run_mode, bgn_date, stp_date)
         t1 = dt.datetime.now()
         self._print_tips()
-        print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
+        print(f"... total time consuming: {SetFontBlue(f'{(t1 - t0).total_seconds():.2f}')} seconds")
         return 0
 
 
@@ -101,17 +93,18 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
                  calendar: CCalendar, verbose: bool):
 
         super().__init__(proc_num, src_db_structure_path, src_db_name, src_tab_name, src_db_dir, calendar)
-        self.m_db_save_dir, self.m_db_save_name = db_save_dir, db_save_name
+        self.m_dst_db_save_dir, self.m_dst_db_save_name = db_save_dir, db_save_name
+        self.m_manager_tables = {_.m_table_name: _ for _ in tables}
 
         # --- init lib writer
-        self.m_by_instru_db = CManagerLibWriter(self.m_db_save_dir, self.m_db_save_name)
-        self.m_by_instru_db.initialize_tables(
+        m_by_instru_db = CManagerLibWriter(self.m_dst_db_save_dir, self.m_dst_db_save_name)
+        m_by_instru_db.initialize_tables(
             t_tables=tables,
             t_remove_existence=run_mode in ["O", "OVERWRITE"],
             t_default_table_name="",
             t_verbose=verbose,
         )
-        self.m_by_instru_db.close()
+        m_by_instru_db.close()
 
     def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> int:
         """
@@ -124,10 +117,10 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
                  2: Overlapping warning, some data maybe overwrite
         """
         if run_mode in ["A", "APPEND"]:
-            self.m_by_instru_db.reconnect()
-            dates_df = self.m_by_instru_db.read(t_value_columns=["trade_date"],
-                                                t_using_default_table=False, t_table_name=instrument_id.replace(".", "_"))
-            self.m_by_instru_db.close()
+            m_by_instru_db = CManagerLibReader(self.m_dst_db_save_dir, self.m_dst_db_save_name)
+            m_by_instru_db.set_default(t_default_table_name=instrument_id.replace(".", "_"))
+            dates_df = m_by_instru_db.read(t_value_columns=["trade_date"])
+            m_by_instru_db.close()
             if len(dates_df) > 0:
                 last_date = dates_df["trade_date"].iloc[-1]
                 expected_bgn_date = self.calendar.get_next_date(last_date, 1)
@@ -148,13 +141,14 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
                 return 2
         return 0
 
-    def _save(self, update_df: pd.DataFrame, using_index: bool, table_name: str):
-        self.m_by_instru_db.reconnect()
-        self.m_by_instru_db.update(
+    def _save(self, instrument_id: str, update_df: pd.DataFrame, using_index: bool, table_name: str):
+        m_by_instru_db = CManagerLibWriter(self.m_dst_db_save_dir, self.m_dst_db_save_name)
+        m_by_instru_db.initialize_table(t_table=self.m_manager_tables[instrument_id.replace(".", "_")], t_remove_existence=False)
+        m_by_instru_db.update(
             t_update_df=update_df,
             t_using_index=using_index,
             t_using_default_table=False,
             t_table_name=table_name,
         )
-        self.m_by_instru_db.close()
+        m_by_instru_db.close()
         return 0

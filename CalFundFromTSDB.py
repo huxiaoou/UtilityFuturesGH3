@@ -10,7 +10,7 @@ created @ 2023-04-18
 import os
 import datetime as dt
 import pandas as pd
-from skyrim.whiterun import CCalendar, CInstrumentInfoTable
+from skyrim.whiterun import CCalendar, CInstrumentInfoTable, SetFontGreen
 from TSDBTranslator2.translator import CTSDBReader
 from TSDBTranslator2.translator_funs import add_instrument_to_trade_date_tsdb_df
 
@@ -75,6 +75,8 @@ def update_fundamental_by_instrument(
             instrument_file = "{}.{}.csv.gz".format(wind_code, fundamental_data_type.upper())
             instrument_path = os.path.join(t_fundamental_by_instru_dir, instrument_file)
             new_sorted_instrument_df.to_csv(instrument_path, float_format="%.8f", index=False)
+    print(f"... @ {dt.datetime.now()} all fundamental data between "
+          f"[{SetFontGreen(t_bgn_date)}, {SetFontGreen(t_stp_date)}) are updated for all instruments ")
     return 0
 
 

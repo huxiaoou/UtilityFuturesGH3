@@ -14,6 +14,7 @@ created @ 2023-04-18
 
 import os
 import pandas as pd
+from skyrim.whiterun import SetFontGreen
 from DbByInstrument import CDbByInstrumentCSV
 
 
@@ -50,5 +51,5 @@ class CDbByInstrumentCSVMd(CDbByInstrumentCSV):
         return 0
 
     def _print_tips(self):
-        print("... market data calculated")
+        print(f"... {SetFontGreen('market data')} calculated")
         return 0

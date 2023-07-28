@@ -1,7 +1,6 @@
 import argparse
 import datetime as dt
 from skyrim.whiterun import CCalendar, CInstrumentInfoTable
-from skyrim.falkreath import CManagerLibReader
 from utility_futures_setup import (global_config,
                                    futures_md_structure_path, futures_md_db_name, futures_md_dir,
                                    futures_fundamental_structure_path, futures_fundamental_db_name, futures_fundamental_dir,
@@ -69,7 +68,6 @@ if __name__ == "__main__":
     elif switch in ["MR"]:
         from DbMajorReturn import CDbByInstrumentSQLMajorReturn
 
-        major_minor_reader = CManagerLibReader(futures_by_instrument_dir, major_minor_db_name)
         db_by_instrument = CDbByInstrumentSQLMajorReturn(
             proc_num=proc_num,
             db_save_dir=futures_by_instrument_dir, db_save_name=major_return_db_name, instrument_ids=concerned_universe,
@@ -80,12 +78,12 @@ if __name__ == "__main__":
             src_db_dir=futures_md_dir,
             major_return_price_type=major_return_price_type,
             vo_adj_split_date=vo_adj_split_date,
-            major_minor_reader=major_minor_reader,
+            major_minor_lib_dir=futures_by_instrument_dir,
+            major_minor_lib_name=major_minor_db_name,
             calendar=calendar,
             verbose=False,
         )
         db_by_instrument.main_loop(instrument_ids=concerned_universe, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
-        major_minor_reader.close()
     elif switch in ["MD"]:
         from DbMd import CDbByInstrumentCSVMd
 

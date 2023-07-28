@@ -11,7 +11,7 @@ created @ 2023-07-24
 """
 
 import pandas as pd
-from skyrim.whiterun import CCalendar
+from skyrim.whiterun import CCalendar, SetFontGreen
 from skyrim.falkreath import CTable
 from DbByInstrument import CDbByInstrumentSQL
 
@@ -83,9 +83,9 @@ class CDbByInstrumentSQLMajorMinor(CDbByInstrumentSQL):
         if self._check_continuity(instrument_id, run_mode, bgn_date) == 0:
             update_df = self.__update_major_minor(instrument_id, run_mode, bgn_date, stp_date)
             instru_tab_name = instrument_id.replace(".", "_")
-            self._save(update_df=update_df, using_index=False, table_name=instru_tab_name)
+            self._save(instrument_id=instrument_id, update_df=update_df, using_index=False, table_name=instru_tab_name)
         return 0
 
     def _print_tips(self):
-        print("... major and minor contracts calculated")
+        print(f"... {SetFontGreen('major and minor contracts')} calculated")
         return 0
