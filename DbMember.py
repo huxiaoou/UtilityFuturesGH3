@@ -5,15 +5,13 @@ created @ 2023-07-27
 
 import datetime
 import pandas as pd
-from skyrim.whiterun import CCalendar, SetFontGreen
+from skyrim.whiterun import SetFontGreen
 from skyrim.falkreath import CTable
 from DbByInstrument import CDbByInstrumentSQL
 
 
 class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
-    def __init__(self, proc_num: int, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
-                 src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
-                 calendar: CCalendar, verbose: bool):
+    def __init__(self, instrument_ids: list[str], **kwargs):
 
         # init tables
         tables = [CTable(t_table_struct={
@@ -28,10 +26,7 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
                 "srtDlt": "INTEGER",
             },
         }) for instrument_id in instrument_ids]
-        super().__init__(proc_num=proc_num, db_save_dir=db_save_dir, db_save_name=db_save_name, tables=tables, run_mode=run_mode,
-                         src_db_structure_path=src_db_structure_path, src_db_name=src_db_name,
-                         src_tab_name=src_tab_name, src_db_dir=src_db_dir,
-                         calendar=calendar, verbose=verbose)
+        super().__init__(tables=tables, **kwargs)
 
     def __update_member_data(self, instrument_id: str, bgn_date: str, stp_date: str):
         instrument, exchange = instrument_id.split(".")

@@ -18,17 +18,14 @@ created @ 2023-04-17
 
 import numpy as np
 import pandas as pd
-from skyrim.whiterun import CCalendar, SetFontGreen
+from skyrim.whiterun import SetFontGreen
 from skyrim.falkreath import CTable, CManagerLibReader
 from DbByInstrument import CDbByInstrumentSQL
 
 
 class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
-    def __init__(self, proc_num: int, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
-                 src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
-                 major_return_price_type: str, vo_adj_split_date: str,
-                 major_minor_lib_dir: str, major_minor_lib_name: str,
-                 calendar: CCalendar, verbose: bool):
+    def __init__(self, instrument_ids: list[str], major_return_price_type: str, vo_adj_split_date: str,
+                 major_minor_lib_dir: str, major_minor_lib_name: str, **kwargs):
 
         self.m_major_return_price_type = major_return_price_type  # "close"
         self.m_vo_adj_split_date = vo_adj_split_date  # "20200101"
@@ -55,10 +52,7 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
                               "closeC": "REAL",
                               },
         }) for instrument_id in instrument_ids]
-        super().__init__(proc_num=proc_num, db_save_dir=db_save_dir, db_save_name=db_save_name, tables=tables, run_mode=run_mode,
-                         src_db_structure_path=src_db_structure_path, src_db_name=src_db_name,
-                         src_tab_name=src_tab_name, src_db_dir=src_db_dir,
-                         calendar=calendar, verbose=verbose)
+        super().__init__(tables=tables, **kwargs)
 
     @staticmethod
     def cal_major_return(x: pd.Series, t_this_prc_lbl: str, t_prev_prc_lbl: str) -> float:

@@ -1,5 +1,7 @@
 # Description
 
+## Summary
+
 This project is designed to transpose futures data from by-date to by-instru.
 
 Main differences from previous versions:
@@ -11,3 +13,15 @@ Main differences from previous versions:
 + VOLUME_SHIFT_N are all set to 0.
 + run_mode, bgn_date, stp_date are redesigned.
 + project structure are refactored to use main.py as entrance ONLY. 
+
+## Class Structure
+
+CDbByInstrumentBase
+    CDbByInstrumentCSV
+        CDbByInstrumentCSVMd
+    CDbByInstrumentSQL
+        CDbByInstrumentSQLMajorMinor
+        CDbByInstrumentSQLMajorReturn
+        CDbByInstrumentSQLMember
+        CDbByInstrumentSQLVolume
+    

@@ -10,31 +10,39 @@ from utility_futures_setup import (global_config,
                                    md_by_instru_dir, fundamental_by_instru_dir,
                                    )
 
-if __name__ == "__main__":
+
+def parse_args():
     args_parser = argparse.ArgumentParser(description="Entry point of this project", formatter_class=argparse.RawTextHelpFormatter)
     args_parser.add_argument("-w", "--switch", type=str,
                              help="""use this to decide which parts to run, available options = {
-    'mm': major_minor,
-    'mr': major_return,
-    'fd': fundamental,
-    }""")
+        'mm': major_minor,
+        'mr': major_return,
+        'fd': fundamental, no run mode needed
+        'vol': volume sum by instrument,
+        'mbr': member information, no data source type needed, only from wind
+        }""")
     args_parser.add_argument("-p", "--process", type=int, default=5, help="""number of process to be called when calculating, default = 5""")
-    args_parser.add_argument("-m", "--mode", type=str, choices=("o", "a"), help="""run mode, available options = {'o', 'overwrite', 'a', 'append'}""")
+    args_parser.add_argument("-m", "--mode", type=str, choices=("o", "a"), help="""run mode, available options = {'o', 'a'}""")
     args_parser.add_argument("-b", "--bgn", type=str, help="""begin date, suggested = '20120101'. """)
     args_parser.add_argument("-s", "--stp", type=str, help="""stop date, not included.""")
     args_parser.add_argument("-r", "--source", type=str, choices=("sql", "tsdb"), help="""type of source data""")
 
     args = args_parser.parse_args()
-    switch = args.switch.upper()
-    proc_num = args.process
-    run_mode = None if switch in ["FD"] else args.mode.upper()
-    bgn_date, stp_date = args.bgn, args.stp
-    stp_date = (dt.datetime.strptime(bgn_date, "%Y%m%d") + dt.timedelta(days=1)).strftime("%Y%m%d") if stp_date is None else stp_date
-    src_type = None if switch in ["MBR"] else args.source.upper()
+    _switch = args.switch.upper()
+    _proc_num = args.process
+    _run_mode = None if _switch in ["FD"] else args.mode.upper()
+    _bgn_date, _stp_date = args.bgn, args.stp
+    _stp_date = (dt.datetime.strptime(_bgn_date, "%Y%m%d") + dt.timedelta(days=1)).strftime("%Y%m%d") if _stp_date is None else _stp_date
+    _src_type = None if _switch in ["MBR"] else args.source.upper()
+    return _switch, _proc_num, _run_mode, _bgn_date, _stp_date, _src_type
+
+
+if __name__ == "__main__":
+    switch, proc_num, run_mode, bgn_date, stp_date, src_type = parse_args()
     src_tab_name_md = "CTable2" if src_type == "TSDB" else "CTable"
 
     # manual config
-    concerned_universe = global_config["futures"]["concerned_universe"]
+    concerned_universe = global_config["futures"]["concerned_universe"]  # size = 56
     volume_mov_ave_n_config, volume_mov_ave_n_default = {"IH.CFE": 1, "IF.CFE": 1, "IC.CFE": 1, "IM.CFE": 1,
                                                          "TS.CFE": 1, "T.CFE": 1, "TF.CFE": 1, "TL.CFE": 1, }, 3
     major_return_price_type = "close"
@@ -144,7 +152,7 @@ if __name__ == "__main__":
         db_by_instrument = CDbByInstrumentSQLMember(
             proc_num=proc_num,
             db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name, instrument_ids=concerned_universe,
-            # db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name, instrument_ids=["RB.SHF", "Y.DCE", "SR.CZC"],
+            # db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name, instrument_ids=["P.DCE", "RR.DCE", "ZC.CZC"],
             run_mode=run_mode,
             src_db_structure_path=futures_fundamental_structure_path,
             src_db_name=futures_fundamental_db_name,
@@ -154,6 +162,5 @@ if __name__ == "__main__":
             verbose=False,
         )
         db_by_instrument.main_loop(instrument_ids=concerned_universe, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
-        # db_by_instrument.main_loop(instrument_ids=["RB.SHF", "Y.DCE", "SR.CZC"], run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
     else:
         print(f"... switch = {switch} is not a legal option, please check again.")

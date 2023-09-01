@@ -9,16 +9,13 @@ created @ 2023-07-27
 """
 
 import pandas as pd
-from skyrim.whiterun import CCalendar, CInstrumentInfoTable, SetFontGreen
+from skyrim.whiterun import CInstrumentInfoTable, SetFontGreen
 from skyrim.falkreath import CTable
 from DbByInstrument import CDbByInstrumentSQL
 
 
 class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
-    def __init__(self, proc_num: int, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
-                 src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
-                 vo_adj_split_date: str,
-                 calendar: CCalendar, instru_info_table: CInstrumentInfoTable, verbose: bool):
+    def __init__(self, instrument_ids: list[str], vo_adj_split_date: str, instru_info_table: CInstrumentInfoTable, **kwargs):
         self.m_vo_adj_split_date = vo_adj_split_date  # "20200101"
         self.m_instru_info_table = instru_info_table
 
@@ -34,10 +31,7 @@ class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
                 "sizeSettle": "REAL",
             },
         }) for instrument_id in instrument_ids]
-        super().__init__(proc_num=proc_num, db_save_dir=db_save_dir, db_save_name=db_save_name, tables=tables, run_mode=run_mode,
-                         src_db_structure_path=src_db_structure_path, src_db_name=src_db_name,
-                         src_tab_name=src_tab_name, src_db_dir=src_db_dir,
-                         calendar=calendar, verbose=verbose)
+        super().__init__(tables=tables, **kwargs)
 
     def __update_volume_like_data(self, instrument_id: str, bgn_date: str, stp_date: str):
         instrument, exchange = instrument_id.split(".")

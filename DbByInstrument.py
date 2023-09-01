@@ -56,10 +56,8 @@ class CDbByInstrumentBase(object):
 
 
 class CDbByInstrumentCSV(CDbByInstrumentBase):
-    def __init__(self, proc_num: int, md_by_instru_dir: str, price_types: list[str],
-                 src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
-                 calendar: CCalendar):
-        super().__init__(proc_num, src_db_structure_path, src_db_name, src_tab_name, src_db_dir, calendar)
+    def __init__(self, md_by_instru_dir: str, price_types: list[str], **kwargs):
+        super().__init__(**kwargs)
         self.m_md_by_instru_dir = md_by_instru_dir
         self.m_price_types = price_types
         self.m_price_file_prototype = "{}.md.{}.csv.gz"
@@ -88,11 +86,9 @@ class CDbByInstrumentCSV(CDbByInstrumentBase):
 
 
 class CDbByInstrumentSQL(CDbByInstrumentBase):
-    def __init__(self, proc_num: int, db_save_dir: str, db_save_name: str, tables: list[CTable], run_mode: str,
-                 src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
-                 calendar: CCalendar, verbose: bool):
+    def __init__(self, db_save_dir: str, db_save_name: str, tables: list[CTable], run_mode: str, verbose: bool, **kwargs):
 
-        super().__init__(proc_num, src_db_structure_path, src_db_name, src_tab_name, src_db_dir, calendar)
+        super().__init__(**kwargs)
         self.m_dst_db_save_dir, self.m_dst_db_save_name = db_save_dir, db_save_name
         self.m_manager_tables = {_.m_table_name: _ for _ in tables}
 

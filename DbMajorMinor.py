@@ -11,16 +11,13 @@ created @ 2023-07-24
 """
 
 import pandas as pd
-from skyrim.whiterun import CCalendar, SetFontGreen
+from skyrim.whiterun import SetFontGreen
 from skyrim.falkreath import CTable
 from DbByInstrument import CDbByInstrumentSQL
 
 
 class CDbByInstrumentSQLMajorMinor(CDbByInstrumentSQL):
-    def __init__(self, proc_num: int, db_save_dir: str, db_save_name: str, instrument_ids: list[str], run_mode: str,
-                 src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
-                 volume_mov_ave_n_config: dict[str, int], volume_mov_ave_n_default: int,
-                 calendar: CCalendar, verbose: bool):
+    def __init__(self, instrument_ids: list[str], volume_mov_ave_n_config: dict[str, int], volume_mov_ave_n_default: int, **kwargs):
         # unique member
         self.m_volume_mov_ave_n_config: dict[str, int] = volume_mov_ave_n_config
         self.m_volume_mov_ave_n_default: int = volume_mov_ave_n_default
@@ -31,10 +28,7 @@ class CDbByInstrumentSQLMajorMinor(CDbByInstrumentSQL):
             "primary_keys": {"trade_date": "TEXT"},
             "value_columns": {"n_contract": "TEXT", "d_contract": "TEXT"},
         }) for instrument_id in instrument_ids]
-        super().__init__(proc_num=proc_num, db_save_dir=db_save_dir, db_save_name=db_save_name, tables=tables, run_mode=run_mode,
-                         src_db_structure_path=src_db_structure_path, src_db_name=src_db_name,
-                         src_tab_name=src_tab_name, src_db_dir=src_db_dir,
-                         calendar=calendar, verbose=verbose)
+        super().__init__(tables=tables, **kwargs)
 
     @staticmethod
     def __parse_n_contract_and_d_contract(vol_srs: pd.Series, instrument: str, exchange: str):
