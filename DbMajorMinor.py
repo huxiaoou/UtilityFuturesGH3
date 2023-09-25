@@ -60,17 +60,21 @@ class CDbByInstrumentSQLMajorMinor(CDbByInstrumentSQL):
         db_reader.close()
 
         # --- pivot
-        pivot_volume_df = pd.pivot_table(data=md_df, values="volume", index="trade_date", columns="contract").fillna(0)
-        pivot_volume_df_sorted = pivot_volume_df.sort_index(axis=1).sort_index(axis=0)
-        volume_mov_aver_df = pivot_volume_df_sorted.rolling(window=volume_mov_ave_n).mean()
-        volume_mov_aver_df = volume_mov_aver_df.loc[volume_mov_aver_df.index >= bgn_date]
-        if run_mode in ["O", "OVERWRITE"]:
-            volume_mov_aver_df = volume_mov_aver_df.fillna(method="bfill")  # for first few rows
+        if len(md_df) > 0:
+            pivot_volume_df = pd.pivot_table(data=md_df, values="volume", index="trade_date", columns="contract").fillna(0)
+            pivot_volume_df_sorted = pivot_volume_df.sort_index(axis=1).sort_index(axis=0)
+            volume_mov_aver_df = pivot_volume_df_sorted.rolling(window=volume_mov_ave_n).mean()
+            volume_mov_aver_df = volume_mov_aver_df.loc[volume_mov_aver_df.index >= bgn_date]
+            if run_mode in ["O", "OVERWRITE"]:
+                volume_mov_aver_df = volume_mov_aver_df.fillna(method="bfill")  # for first few rows
 
-        # main loop to get major and minor contracts
-        volume_mov_aver_df["n_contract"], volume_mov_aver_df["d_contract"] = \
-            zip(*volume_mov_aver_df.apply(self.__parse_n_contract_and_d_contract, args=(instrument, exchange), axis=1))
-        major_minor_df = volume_mov_aver_df[["n_contract", "d_contract"]].reset_index()
+            # main loop to get major and minor contracts
+            volume_mov_aver_df["n_contract"], volume_mov_aver_df["d_contract"] = \
+                zip(*volume_mov_aver_df.apply(self.__parse_n_contract_and_d_contract, args=(instrument, exchange), axis=1))
+            major_minor_df = volume_mov_aver_df[["n_contract", "d_contract"]].reset_index()
+        else:
+            print(f"... Warning! There is no data for {SetFontGreen(instrument_id)}, make sure it's expected")
+            major_minor_df = pd.DataFrame()
         return major_minor_df
 
     def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):

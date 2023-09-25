@@ -14,38 +14,38 @@ from skyrim.falkreath import CManagerLibReader
 
 
 def update_fundamental_by_instrument_from_sql(
-        t_bgn_date: str,
-        t_stp_date: str,
-        t_sql_reader: CManagerLibReader,
-        t_calendar: CCalendar,
-        t_fundamental_by_instru_dir: str,
+        bgn_date: str,
+        stp_date: str,
+        sql_reader: CManagerLibReader,
+        calendar: CCalendar,
+        by_instru_fd_dir: str,
 ):
     """
 
-    :param t_bgn_date:
-    :param t_stp_date:
-    :param t_sql_reader:
-    :param t_calendar:
-    :param t_fundamental_by_instru_dir:
+    :param bgn_date:
+    :param stp_date:
+    :param sql_reader:
+    :param calendar:
+    :param by_instru_fd_dir:
     :return:
     """
 
     fundamental_config = {
-        "stock": {"values": ["trade_date", "instrument", "in_stock"], "table_name": "Stock"},
-        "basis": {"values": ["trade_date", "instrument", "basis", "basis_rate"], "table_name": "BasisW"},
+        "stock": {"values": ["trade_date", "instrument", "in_stock"], "table_name": "STOCK"},
+        "basis": {"values": ["trade_date", "instrument", "basis", "basis_rate"], "table_name": "BASIS"},
     }
 
     # --- set trade_date header
-    header_df = pd.DataFrame({"trade_date": t_calendar.get_iter_list(t_bgn_date, t_stp_date, True)})
+    header_df = pd.DataFrame({"trade_date": calendar.get_iter_list(bgn_date, stp_date, True)})
 
     for fundamental_data_type, fundamental_data_type_config in fundamental_config.items():
-        t_sql_reader.set_default(t_default_table_name=fundamental_data_type_config["table_name"])
+        sql_reader.set_default(t_default_table_name=fundamental_data_type_config["table_name"])
         fundamental_values = fundamental_data_type_config["values"]
 
         # --- load data from TSDB
-        tsdb_df = t_sql_reader.read_by_conditions(t_conditions=[
-            ("trade_date", ">=", t_bgn_date),
-            ("trade_date", "<", t_stp_date),
+        tsdb_df = sql_reader.read_by_conditions(t_conditions=[
+            ("trade_date", ">=", bgn_date),
+            ("trade_date", "<", stp_date),
         ], t_value_columns=fundamental_values)
 
         for instrument, instrument_df in tsdb_df.groupby(by="instrument"):
@@ -54,23 +54,8 @@ def update_fundamental_by_instrument_from_sql(
                 how="left"
             )
             instrument_file = "{}.{}.csv.gz".format(instrument, fundamental_data_type.upper())
-            instrument_path = os.path.join(t_fundamental_by_instru_dir, instrument_file)
+            instrument_path = os.path.join(by_instru_fd_dir, instrument_file)
             new_sorted_instrument_df.to_csv(instrument_path, float_format="%.8f", index=False)
         print(f"... @ {datetime.datetime.now()} fundamental-{SetFontGreen(fundamental_data_type)} between "
-              f"[{SetFontGreen(t_bgn_date)}, {SetFontGreen(t_stp_date)}) are updated for all instruments ")
+              f"[{SetFontGreen(bgn_date)}, {SetFontGreen(stp_date)}) are updated for all instruments ")
     return 0
-
-
-if __name__ == "__main__":
-    from utility_futures_setup import calendar_path, futures_fundamental_dir, futures_fundamental_db_name
-    from utility_futures_setup import fundamental_by_instru_dir
-
-    sql_reader = CManagerLibReader(t_db_save_dir=futures_fundamental_dir, t_db_name=futures_fundamental_db_name + ".db")
-    calendar = CCalendar(calendar_path)
-    update_fundamental_by_instrument_from_sql(
-        t_bgn_date="20120101",
-        t_stp_date="20230717",
-        t_sql_reader=sql_reader,
-        t_calendar=calendar,
-        t_fundamental_by_instru_dir=fundamental_by_instru_dir
-    )

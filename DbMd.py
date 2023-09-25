@@ -36,7 +36,7 @@ class CDbByInstrumentCSVMd(CDbByInstrumentCSV):
 
             # --- set destination
             price_file = self.m_price_file_prototype.format(instrument_id, price_type)
-            price_path = os.path.join(self.m_md_by_instru_dir, price_file)
+            price_path = os.path.join(self.m_by_instru_md_dir, price_file)
             if run_mode.upper() in ["A", "APPEND"]:
                 old_price_df = pd.read_csv(price_path, dtype={"trade_date": str})
                 new_price_df = pd.concat([old_price_df, price_df])

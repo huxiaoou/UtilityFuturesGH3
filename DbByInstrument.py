@@ -1,4 +1,3 @@
-import json
 import os
 import datetime as dt
 import multiprocessing as mp
@@ -8,15 +7,14 @@ from skyrim.falkreath import CTable, CManagerLibReader, CManagerLibWriter
 
 
 class CDbByInstrumentBase(object):
-    def __init__(self, proc_num: int, src_db_structure_path: str, src_db_name: str, src_tab_name: str, src_db_dir: str,
+    def __init__(self, proc_num: int, src_db_name: str, src_tab_name: str, src_db_dir: str,
+                 src_db_structs: dict[str, dict],
                  calendar: CCalendar):
         # --- init lib reader
-        self.m_src_db_struct = src_db_structure_path
+        self.m_src_db_dir = src_db_dir
         self.m_src_db_name = src_db_name
         self.m_src_tab_name = src_tab_name
-        self.m_src_db_dir = src_db_dir
-        with open(self.m_src_db_struct, "r") as j:
-            src_table_struct = json.load(j)[self.m_src_db_name][self.m_src_tab_name]
+        src_table_struct = src_db_structs[src_db_name][src_tab_name]
         self.src_table = CTable(t_table_struct=src_table_struct)
 
         # --- set calendar reference
@@ -25,7 +23,7 @@ class CDbByInstrumentBase(object):
         self.m_proc_num = proc_num
 
     def _get_src_reader(self) -> CManagerLibReader:
-        db_reader = CManagerLibReader(t_db_save_dir=self.m_src_db_dir, t_db_name=self.m_src_db_name + ".db")
+        db_reader = CManagerLibReader(t_db_save_dir=self.m_src_db_dir, t_db_name=self.m_src_db_name)
         db_reader.set_default(t_default_table_name=self.src_table.m_table_name)
         return db_reader
 
@@ -56,9 +54,9 @@ class CDbByInstrumentBase(object):
 
 
 class CDbByInstrumentCSV(CDbByInstrumentBase):
-    def __init__(self, md_by_instru_dir: str, price_types: list[str], **kwargs):
+    def __init__(self, by_instru_md_dir: str, price_types: list[str], **kwargs):
         super().__init__(**kwargs)
-        self.m_md_by_instru_dir = md_by_instru_dir
+        self.m_by_instru_md_dir = by_instru_md_dir
         self.m_price_types = price_types
         self.m_price_file_prototype = "{}.md.{}.csv.gz"
 
@@ -66,7 +64,7 @@ class CDbByInstrumentCSV(CDbByInstrumentBase):
         if run_mode in ["A", "APPEND"]:
             for price_type in self.m_price_types:
                 price_file = self.m_price_file_prototype.format(instrument_id, price_type)
-                price_path = os.path.join(self.m_md_by_instru_dir, price_file)
+                price_path = os.path.join(self.m_by_instru_md_dir, price_file)
                 price_df = pd.read_csv(price_path, dtype={"trade_date": str})
                 last_date = price_df["trade_date"].iloc[-1]
                 expected_bgn_date = self.calendar.get_next_date(last_date, 1)

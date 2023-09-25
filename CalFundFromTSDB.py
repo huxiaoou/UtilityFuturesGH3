@@ -16,21 +16,21 @@ from TSDBTranslator2.translator_funs import add_instrument_to_trade_date_tsdb_df
 
 
 def update_fundamental_by_instrument(
-        t_bgn_date: str,
-        t_stp_date: str,
-        t_tsdb_reader: CTSDBReader,
-        t_calendar: CCalendar,
-        t_instru_info_table: CInstrumentInfoTable,
-        t_fundamental_by_instru_dir: str,
+        bgn_date: str,
+        stp_date: str,
+        tsdb_reader: CTSDBReader,
+        calendar: CCalendar,
+        instru_info_table: CInstrumentInfoTable,
+        by_instru_fd_dir: str,
 ):
     """
 
-    :param t_bgn_date:
-    :param t_stp_date:
-    :param t_tsdb_reader:
-    :param t_calendar:
-    :param t_instru_info_table: use instrumentId as index
-    :param t_fundamental_by_instru_dir:
+    :param bgn_date:
+    :param stp_date:
+    :param tsdb_reader:
+    :param calendar:
+    :param instru_info_table: use instrumentId as index
+    :param by_instru_fd_dir:
     :return:
     """
 
@@ -49,12 +49,12 @@ def update_fundamental_by_instrument(
 
     # --- set trade_date header
     header_df = pd.DataFrame({
-        "trade_date": t_calendar.get_iter_list(t_bgn_date, t_stp_date, True),
+        "trade_date": calendar.get_iter_list(bgn_date, stp_date, True),
     })
 
     # --- load data from TSDB
-    end_date = (dt.datetime.strptime(t_stp_date, "%Y%m%d") - dt.timedelta(days=1)).strftime("%Y%m%d")
-    tsdb_df = t_tsdb_reader.read_all(t_value_columns=value_columns_with_table_name, tp_beg_date=t_bgn_date, tp_end_date=end_date)
+    end_date = (dt.datetime.strptime(stp_date, "%Y%m%d") - dt.timedelta(days=1)).strftime("%Y%m%d")
+    tsdb_df = tsdb_reader.read_all(t_value_columns=value_columns_with_table_name, tp_beg_date=bgn_date, tp_end_date=end_date)
     tsdb_df = tsdb_df.rename(mapper={k: v for k, v in zip(value_columns_with_table_name, value_columns)}, axis=1)
 
     # --- reformat
@@ -64,7 +64,7 @@ def update_fundamental_by_instrument(
     # print(tsdb_df_by_instru)
 
     for instrument, instrument_df in tsdb_df_by_instru.groupby(by="instrument"):
-        exchange = t_instru_info_table.get_exchangeId(t_instrument_id=instrument)
+        exchange = instru_info_table.get_exchangeId(t_instrument_id=instrument)
         wind_code = instrument.upper() + "." + exchange.upper()[0:3]
         for fundamental_data_type, fundamental_data_type_config in fundamental_config.items():
             fundamental_values = fundamental_data_type_config["values"]
@@ -73,27 +73,8 @@ def update_fundamental_by_instrument(
                 how="left"
             )
             instrument_file = "{}.{}.csv.gz".format(wind_code, fundamental_data_type.upper())
-            instrument_path = os.path.join(t_fundamental_by_instru_dir, instrument_file)
+            instrument_path = os.path.join(by_instru_fd_dir, instrument_file)
             new_sorted_instrument_df.to_csv(instrument_path, float_format="%.8f", index=False)
     print(f"... @ {dt.datetime.now()} all fundamental data between "
-          f"[{SetFontGreen(t_bgn_date)}, {SetFontGreen(t_stp_date)}) are updated for all instruments ")
+          f"[{SetFontGreen(bgn_date)}, {SetFontGreen(stp_date)}) are updated for all instruments ")
     return 0
-
-
-if __name__ == "__main__":
-    from utility_futures_setup import custom_ts_db_path, calendar_path, futures_instru_info_path
-    from utility_futures_setup import fundamental_by_instru_dir
-
-    # test_instrument = "CU.SHF"
-    test_instrument = "ZC.CZC"
-    tsdb_reader = CTSDBReader(t_tsdb_path=custom_ts_db_path)
-    calendar = CCalendar(calendar_path)
-    instru_info_table = CInstrumentInfoTable(t_path=futures_instru_info_path, t_type="CSV")
-    update_fundamental_by_instrument(
-        t_tsdb_reader=tsdb_reader,
-        t_calendar=calendar,
-        t_instru_info_table=instru_info_table,
-        t_bgn_date="20120101",
-        t_stp_date="20230419",
-        t_fundamental_by_instru_dir=fundamental_by_instru_dir
-    )
