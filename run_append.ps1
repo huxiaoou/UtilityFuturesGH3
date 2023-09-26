@@ -1,6 +1,6 @@
 $proc_num = 5
 $append_date = Read-Host -Prompt "Please input the append date, which is LAST trade date. format = [YYYYMMDD]"
-$src_database = "sql"
+$src_database = "wds"
 
 python main.py -p $proc_num -w mm  -m a -b $append_date -r $src_database
 python main.py -p $proc_num -w mr  -m a -b $append_date -r $src_database
