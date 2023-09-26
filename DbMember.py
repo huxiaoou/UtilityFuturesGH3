@@ -63,6 +63,7 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
 
     def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
         if self._check_continuity(instrument_id, run_mode, bgn_date) in [0, 1]:
+            # for some instrument, some days may be omitted, so continuity = 1 is allowed
             update_df = self.__update_member_data(instrument_id, bgn_date, stp_date)
             instru_tab_name = instrument_id.replace(".", "_")
             self._save(instrument_id=instrument_id, update_df=update_df, using_index=False, table_name=instru_tab_name)

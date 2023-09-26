@@ -42,7 +42,7 @@ class CDbByInstrumentCSVMd(CDbByInstrumentCSV):
                 new_price_df = pd.concat([old_price_df, price_df])
             else:
                 new_price_df = price_df
-            new_price_df.to_csv(price_path, float_format="%.2f", index=False)
+            new_price_df.to_csv(price_path, float_format="%.3f", index=False)
         return 0
 
     def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):

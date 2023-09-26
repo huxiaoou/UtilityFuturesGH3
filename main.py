@@ -146,7 +146,7 @@ if __name__ == "__main__":
             proc_num=proc_num, src_db_name=futures_positions_c_db_name, src_tab_name="CTable", src_db_dir=futures_dir,
             src_db_structs=db_structs, calendar=calendar,
         )
-        db_by_instrument.main_loop(instrument_ids=concerned_universe, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
+        db_by_instrument.main_loop(instrument_ids=universe_c, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
 
         db_by_instrument = CDbByInstrumentSQLMember(
             instrument_ids=universe_e,
@@ -155,7 +155,7 @@ if __name__ == "__main__":
             proc_num=proc_num, src_db_name=futures_positions_e_db_name, src_tab_name="CTable", src_db_dir=futures_dir,
             src_db_structs=db_structs, calendar=calendar,
         )
-        db_by_instrument.main_loop(instrument_ids=concerned_universe, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
+        db_by_instrument.main_loop(instrument_ids=universe_e, run_mode=run_mode, bgn_date=bgn_date, stp_date=stp_date)
 
     else:
         print(f"... switch = {switch} is not a legal option, please check again.")
