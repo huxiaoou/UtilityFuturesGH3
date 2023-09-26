@@ -55,9 +55,6 @@ major_return_db_name = global_config["futures"]["by_instrument"]["major_return_d
 instrument_volume_db_name = global_config["futures"]["by_instrument"]["instrument_volume_db"]
 instrument_member_db_name = global_config["futures"]["by_instrument"]["instrument_member_db"]
 
-# --- projects
-projects_dir = os.path.join(deploy_dir, global_config["projects"]["projects_save_dir"])
-
 if __name__ == "__main__":
     from skyrim.winterhold import check_and_mkdir
 
