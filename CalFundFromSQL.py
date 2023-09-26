@@ -31,8 +31,8 @@ def update_fundamental_by_instrument_from_sql(
     """
 
     fundamental_config = {
-        "stock": {"values": ["trade_date", "instrument", "in_stock"], "table_name": "STOCK"},
-        "basis": {"values": ["trade_date", "instrument", "basis", "basis_rate"], "table_name": "BASIS"},
+        "stock": {"values": ["trade_date", "wind_code", "in_stock"], "table_name": "STOCK"},
+        "basis": {"values": ["trade_date", "wind_code", "basis", "basis_rate"], "table_name": "BASIS"},
     }
 
     # --- set trade_date header
@@ -48,9 +48,9 @@ def update_fundamental_by_instrument_from_sql(
             ("trade_date", "<", stp_date),
         ], t_value_columns=fundamental_values)
 
-        for instrument, instrument_df in tsdb_df.groupby(by="instrument"):
+        for instrument, instrument_df in tsdb_df.groupby(by="wind_code"):
             new_sorted_instrument_df = pd.merge(
-                left=header_df, right=instrument_df.drop(labels="instrument", axis=1),
+                left=header_df, right=instrument_df.drop(labels="wind_code", axis=1),
                 how="left"
             )
             instrument_file = "{}.{}.csv.gz".format(instrument, fundamental_data_type.upper())
