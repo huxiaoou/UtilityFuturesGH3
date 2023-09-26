@@ -3,7 +3,6 @@ $bgn_date = 20120101
 $append_date = Read-Host -Prompt "Please input the append date, which is LAST trade date. format = [YYYYMMDD]"
 $append_date_dt = [Datetime]::ParseExact($append_date, "yyyyMMdd", $null)
 $stp_date = Get-Date $append_date_dt.AddDays(1) -Format "yyyyMMdd"
-Write-Host $append_date $next_date
 $src_database = "wds"
 
 python main.py -p $proc_num -w mm  -m a -b $append_date -r $src_database
