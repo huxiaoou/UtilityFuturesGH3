@@ -1,4 +1,6 @@
 import os
+import time
+import sqlite3
 import datetime as dt
 import multiprocessing as mp
 import pandas as pd
@@ -135,14 +137,22 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
                 return 2
         return 0
 
-    def _save(self, instrument_id: str, update_df: pd.DataFrame, using_index: bool, table_name: str):
-        m_by_instru_db = CManagerLibWriter(self.m_dst_db_save_dir, self.m_dst_db_save_name)
-        m_by_instru_db.initialize_table(t_table=self.m_manager_tables[instrument_id.replace(".", "_")], t_remove_existence=False)
-        m_by_instru_db.update(
-            t_update_df=update_df,
-            t_using_index=using_index,
-            t_using_default_table=False,
-            t_table_name=table_name,
-        )
-        m_by_instru_db.close()
+    def _save(self, instrument_id: str, update_df: pd.DataFrame, using_index: bool, table_name: str, wait_seconds: int = 3):
+        not_succeed = True
+        while not_succeed:
+            try:
+                m_by_instru_db = CManagerLibWriter(self.m_dst_db_save_dir, self.m_dst_db_save_name)
+                m_by_instru_db.initialize_table(t_table=self.m_manager_tables[instrument_id.replace(".", "_")], t_remove_existence=False)
+                m_by_instru_db.update(
+                    t_update_df=update_df,
+                    t_using_index=using_index,
+                    t_using_default_table=False,
+                    t_table_name=table_name,
+                )
+                m_by_instru_db.close()
+                not_succeed = False
+            except sqlite3.OperationalError as e:
+                print(f"... {SetFontYellow('Warning')}! {instrument_id} failed to update, because {SetFontYellow(f'{e}')}.")
+                print(f"... Program will try in {wait_seconds} seconds")
+                time.sleep(wait_seconds)
         return 0
