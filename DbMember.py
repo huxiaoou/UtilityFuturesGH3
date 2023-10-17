@@ -11,7 +11,7 @@ from DbByInstrument import CDbByInstrumentSQL
 
 
 class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
-    def __init__(self, instrument_ids: list[str], **kwargs):
+    def __init__(self, instrument_ids: list[str], exception_ids: list[str], **kwargs):
 
         # init tables
         tables = [CTable(t_table_struct={
@@ -27,6 +27,7 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
             },
         }) for instrument_id in instrument_ids]
         super().__init__(tables=tables, **kwargs)
+        self.exception_ids = exception_ids
 
     def __update_member_data(self, instrument_id: str, bgn_date: str, stp_date: str):
         instrument, exchange = instrument_id.split(".")
@@ -61,12 +62,14 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
             ("pos_dlt", "3"),
         ]]
 
-    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
+    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str, lock):
+        if (instrument_id in self.exception_ids) and (run_mode in ["A"]):
+            return 0
         if self._check_continuity(instrument_id, run_mode, bgn_date) in [0, 1]:
             # for some instrument, some days may be omitted, so continuity = 1 is allowed
             update_df = self.__update_member_data(instrument_id, bgn_date, stp_date)
             instru_tab_name = instrument_id.replace(".", "_")
-            self._save(instrument_id=instrument_id, update_df=update_df, using_index=False, table_name=instru_tab_name)
+            self._save(instrument_id=instrument_id, update_df=update_df, using_index=False, table_name=instru_tab_name, lock=lock)
             if run_mode in ["O", "OVERWRITE"]:
                 print(f"... @ {datetime.datetime.now()} member position information of {SetFontGreen(f'{instrument_id:>6s}')} are aggregated")
         return 0

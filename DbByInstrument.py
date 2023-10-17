@@ -32,13 +32,14 @@ class CDbByInstrumentBase(object):
     def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> int:
         pass
 
-    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
+    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str, lock):
         pass
 
     def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
+        lock = mp.Manager().Lock()
         pool = mp.Pool(processes=self.m_proc_num)
         for instrument_id in instrument_ids:
-            pool.apply_async(self._get_update_data_by_instrument, args=(instrument_id, run_mode, bgn_date, stp_date))
+            pool.apply_async(self._get_update_data_by_instrument, args=(instrument_id, run_mode, bgn_date, stp_date, lock))
         pool.close()
         pool.join()
         return 0
@@ -137,22 +138,17 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
                 return 2
         return 0
 
-    def _save(self, instrument_id: str, update_df: pd.DataFrame, using_index: bool, table_name: str, wait_seconds: int = 3):
-        not_succeed = True
-        while not_succeed:
-            try:
-                m_by_instru_db = CManagerLibWriter(self.m_dst_db_save_dir, self.m_dst_db_save_name)
-                m_by_instru_db.initialize_table(t_table=self.m_manager_tables[instrument_id.replace(".", "_")], t_remove_existence=False)
-                m_by_instru_db.update(
-                    t_update_df=update_df,
-                    t_using_index=using_index,
-                    t_using_default_table=False,
-                    t_table_name=table_name,
-                )
-                m_by_instru_db.close()
-                not_succeed = False
-            except sqlite3.OperationalError as e:
-                print(f"... {SetFontYellow('Warning')}! {instrument_id} failed to update, because {SetFontYellow(f'{e}')}.")
-                print(f"... Program will try in {wait_seconds} seconds")
-                time.sleep(wait_seconds)
+    def _save(self, instrument_id: str, update_df: pd.DataFrame, using_index: bool, table_name: str, lock, wait_seconds: int = 3):
+        if len(update_df) > 0:
+            lock.acquire()
+            m_by_instru_db = CManagerLibWriter(self.m_dst_db_save_dir, self.m_dst_db_save_name)
+            m_by_instru_db.initialize_table(t_table=self.m_manager_tables[instrument_id.replace(".", "_")], t_remove_existence=False)
+            m_by_instru_db.update(
+                t_update_df=update_df,
+                t_using_index=using_index,
+                t_using_default_table=False,
+                t_table_name=table_name,
+            )
+            m_by_instru_db.close()
+            lock.release()
         return 0
