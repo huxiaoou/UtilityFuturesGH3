@@ -19,7 +19,7 @@ from DbByInstrument import CDbByInstrumentCSV
 
 
 class CDbByInstrumentCSVMd(CDbByInstrumentCSV):
-    def __update_md(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str):
+    def __update_md(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str) -> list[tuple[str, pd.DataFrame]]:
         instrument, exchange = instrument_id.split(".")
         db_reader = self._get_src_reader()
         md_df = db_reader.read_by_conditions(t_conditions=[
@@ -30,6 +30,7 @@ class CDbByInstrumentCSVMd(CDbByInstrumentCSV):
         ).rename(mapper={"loc_id": "contract"}, axis=1)
         db_reader.close()
 
+        dfs_by_price_type = []
         for price_type in self.m_price_types:
             price_df = pd.pivot_table(data=md_df, values=price_type, index="trade_date", columns="contract", dropna=False)
             price_df = price_df.reset_index().rename(mapper={"index": "trade_date"}, axis=1)
@@ -42,13 +43,14 @@ class CDbByInstrumentCSVMd(CDbByInstrumentCSV):
                 new_price_df = pd.concat([old_price_df, price_df])
             else:
                 new_price_df = price_df
-            new_price_df.to_csv(price_path, float_format="%.3f", index=False)
-        return 0
+            dfs_by_price_type.append((price_type, new_price_df))
+        return dfs_by_price_type
 
-    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str, lock):
+    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str) -> tuple[str, list[tuple[str, pd.DataFrame]]] | None:
         if self._check_continuity(instrument_id, run_mode, bgn_date) == 0:
-            self.__update_md(instrument_id, run_mode, bgn_date, stp_date)
-        return 0
+            dfs_by_price_type = self.__update_md(instrument_id, run_mode, bgn_date, stp_date)
+            return instrument_id, dfs_by_price_type
+        return None
 
     def _print_tips(self):
         print(f"... {SetFontGreen('market data')} calculated")

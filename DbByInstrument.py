@@ -30,16 +30,22 @@ class CDbByInstrumentBase(object):
     def _check_continuity(self, instrument_id: str, run_mode: str, bgn_date: str) -> int:
         pass
 
-    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str, lock):
+    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str) -> tuple[str, list[tuple[str, pd.DataFrame]]] | None:
+        pass
+
+    def _save(self, update_dfs: list[tuple[str, list[tuple[str, pd.DataFrame]]]], run_mode: str):
         pass
 
     def _instrument_loop(self, instrument_ids: list[str], run_mode: str, bgn_date: str, stp_date: str):
-        lock = mp.Manager().Lock()
+        update_data = []
         pool = mp.Pool(processes=self.m_proc_num)
         for instrument_id in instrument_ids:
-            pool.apply_async(self._get_update_data_by_instrument, args=(instrument_id, run_mode, bgn_date, stp_date, lock))
+            res = pool.apply_async(self._get_update_data_by_instrument, args=(instrument_id, run_mode, bgn_date, stp_date))
+            update_data.append(res)
         pool.close()
         pool.join()
+        update_dfs: list[tuple[str, list[tuple[str, pd.DataFrame]]]] = [_.get() for _ in update_data]
+        self._save(update_dfs, run_mode)
         return 0
 
     def _print_tips(self):
@@ -81,6 +87,16 @@ class CDbByInstrumentCSV(CDbByInstrumentBase):
                           f"and expected bgn_date should be {SetFontRed(expected_bgn_date)}, but input bgn_date = {bgn_date}, "
                           f"some days may be {SetFontRed('overwritten')}")
                     return 2
+        return 0
+
+    def _save(self, update_dfs: list[tuple[str, list[tuple[str, pd.DataFrame]]]], run_mode: str):
+        for res in update_dfs:  # instrument loop
+            if res:
+                instrument_id, dfs_list = res
+                for price_type, new_price_df in dfs_list:
+                    price_file = self.m_price_file_prototype.format(instrument_id, price_type)
+                    price_path = os.path.join(self.m_by_instru_md_dir, price_file)
+                    new_price_df.to_csv(price_path, float_format="%.3f", index=False)
         return 0
 
 
@@ -136,17 +152,21 @@ class CDbByInstrumentSQL(CDbByInstrumentBase):
                 return 2
         return 0
 
-    def _save(self, instrument_id: str, update_df: pd.DataFrame, using_index: bool, table_name: str, lock, wait_seconds: int = 3):
-        if len(update_df) > 0:
-            lock.acquire()
-            m_by_instru_db = CManagerLibWriter(self.m_dst_db_save_dir, self.m_dst_db_save_name)
-            m_by_instru_db.initialize_table(t_table=self.m_manager_tables[instrument_id.replace(".", "_")], t_remove_existence=False)
-            m_by_instru_db.update(
-                t_update_df=update_df,
-                t_using_index=using_index,
-                t_using_default_table=False,
-                t_table_name=table_name,
-            )
-            m_by_instru_db.close()
-            lock.release()
+    def _save(self, update_dfs: list[tuple[str, list[tuple[str, pd.DataFrame]]]], run_mode: str):
+        for res in update_dfs:  # instrument loop
+            if res:
+                instrument_id, dfs_list = res
+                _, update_df = dfs_list[0]
+                if not update_df.empty:
+                    using_index = False
+                    table_name = instrument_id.replace(".", "_")
+                    m_by_instru_db = CManagerLibWriter(self.m_dst_db_save_dir, self.m_dst_db_save_name)
+                    m_by_instru_db.initialize_table(t_table=self.m_manager_tables[table_name], t_remove_existence=run_mode in ["O"])
+                    m_by_instru_db.update(
+                        t_update_df=update_df,
+                        t_using_index=using_index,
+                        t_using_default_table=False,
+                        t_table_name=table_name,
+                    )
+                    m_by_instru_db.close()
         return 0

@@ -140,7 +140,7 @@ if __name__ == "__main__":
         universe_e = [z for z in concerned_universe if z.split(".")[1] == "CFE"]
 
         db_by_instrument = CDbByInstrumentSQLMember(
-            instrument_ids=universe_c, exception_ids=[],
+            instrument_ids=universe_c, exception_ids=["WR.SHF"],
             db_save_dir=futures_by_instrument_dir, db_save_name=instrument_member_db_name,
             run_mode=run_mode, verbose=False,
             proc_num=proc_num, src_db_name=futures_positions_c_db_name, src_tab_name="CTable", src_db_dir=futures_dir,

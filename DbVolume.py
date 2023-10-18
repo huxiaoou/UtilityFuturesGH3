@@ -62,12 +62,11 @@ class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
         # --- column selection
         return volume_df[["trade_date", "volume", "amount", "oi", "sizeClose", "sizeSettle"]]
 
-    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str, lock):
+    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str) -> tuple[str, list[tuple[str, pd.DataFrame]]] | None:
         if self._check_continuity(instrument_id, run_mode, bgn_date) == 0:
             update_df = self.__update_volume_like_data(instrument_id, bgn_date, stp_date)
-            instru_tab_name = instrument_id.replace(".", "_")
-            self._save(instrument_id=instrument_id, update_df=update_df, using_index=False, table_name=instru_tab_name, lock=lock)
-        return 0
+            return instrument_id, [("volume", update_df)]
+        return None
 
     def _print_tips(self):
         print(f"... {SetFontGreen('volume, amount, oi, sizeClose and sizeSettle')} are calculated")
