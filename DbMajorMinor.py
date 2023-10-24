@@ -51,16 +51,19 @@ class CDbByInstrumentSQLMajorMinor(CDbByInstrumentSQL):
 
         # --- load historical data
         db_reader = self._get_src_reader()
-        md_df = db_reader.read_by_instrument_and_time_window(
-            t_instrument=instrument,
+        md_df = db_reader.read_by_conditions(
+            t_conditions=[
+                ("trade_date", ">=", base_date),
+                ("trade_date", "<", stp_date),
+                ("instrument", "=", instrument),
+                ("exchange", "=", exchange),
+            ],
             t_value_columns=["trade_date", "loc_id", "volume"],
-            t_bgn_date=base_date,
-            t_stp_date=stp_date,
         ).rename(mapper={"loc_id": "contract"}, axis=1)
         db_reader.close()
 
         # --- pivot
-        if len(md_df) > 0:
+        if not md_df.empty:
             pivot_volume_df = pd.pivot_table(data=md_df, values="volume", index="trade_date", columns="contract").fillna(0)
             pivot_volume_df_sorted = pivot_volume_df.sort_index(axis=1).sort_index(axis=0)
             volume_mov_aver_df = pivot_volume_df_sorted.rolling(window=volume_mov_ave_n).mean()

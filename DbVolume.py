@@ -43,6 +43,7 @@ class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
             ("trade_date", ">=", bgn_date),
             ("trade_date", "<", stp_date),
             ("instrument", "=", instrument),
+            ("exchange", "=", exchange),
         ], t_value_columns=["trade_date", "loc_id", "close", "settle", "volume", "amount", "oi"],
         ).rename(mapper={"loc_id": "contract"}, axis=1)
         db_reader.close()

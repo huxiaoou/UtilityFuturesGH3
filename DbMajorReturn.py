@@ -72,7 +72,7 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
         major_minor_df = major_minor_reader.read_by_conditions(t_conditions=[
             ("trade_date", ">=", base_date),
             ("trade_date", "<", stp_date),
-        ], t_value_columns=["trade_date", "n_contract"], t_using_default_table=False, t_table_name=instrument_id.replace(".", "_"))
+        ], t_value_columns=["trade_date", "n_contract"])
         major_minor_reader.close()
         major_minor_df["prev_trade_date"] = major_minor_df["trade_date"].shift(1)
         major_minor_df = major_minor_df.loc[major_minor_df["trade_date"] >= bgn_date]
@@ -89,6 +89,7 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
             ("trade_date", ">=", base_date),
             ("trade_date", "<", stp_date),
             ("instrument", "=", instrument),
+            ("exchange", "=", exchange),
         ], t_value_columns=["trade_date", "loc_id", "open", "high", "low", "close", "volume", "amount", "oi"],
         ).rename(mapper={"loc_id": "contract"}, axis=1)
         db_reader.close()

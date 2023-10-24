@@ -38,11 +38,12 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
             ("trade_date", ">=", bgn_date),
             ("trade_date", "<", stp_date),
             ("instrument", "=", instrument),
+            ("exchange", "=", exchange),
         ], t_value_columns=["trade_date", "loc_id", "member", "rnk_type", "pos_qty", "pos_dlt"],
         ).rename(mapper={"loc_id": "contract"}, axis=1)
         db_reader.close()
 
-        if len(md_df) == 0:
+        if md_df.empty:
             return pd.DataFrame()
 
         # --- transform
