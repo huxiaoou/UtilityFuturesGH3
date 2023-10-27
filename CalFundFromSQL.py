@@ -31,23 +31,30 @@ def update_fundamental_by_instrument_from_sql(
     """
 
     fundamental_config = {
-        "stock": {"values": ["trade_date", "wind_code", "in_stock"], "table_name": "STOCK"},
-        "basis": {"values": ["trade_date", "wind_code", "basis", "basis_rate"], "table_name": "BASIS"},
+        "stock": [
+            {"table_name": "STOCK", "values": ["trade_date", "wind_code", "in_stock"]},
+        ],
+        "basis": [
+            {"table_name": "BASIS", "values": ["trade_date", "wind_code", "basis", "basis_rate"]},
+            {"table_name": "BASISCFE", "values": ["trade_date", "wind_code", "basis", "basis_rate", "basis_rate_annual"]},
+        ]
     }
 
     # --- set trade_date header
     header_df = pd.DataFrame({"trade_date": calendar.get_iter_list(bgn_date, stp_date, True)})
 
-    for fundamental_data_type, fundamental_data_type_config in fundamental_config.items():
-        sql_reader.set_default(t_default_table_name=fundamental_data_type_config["table_name"])
-        fundamental_values = fundamental_data_type_config["values"]
+    for fundamental_data_type, fundamental_data_type_configs in fundamental_config.items():
+        tsdb_dfs = []
+        for fundamental_data_type_config in fundamental_data_type_configs:
+            sql_reader.set_default(t_default_table_name=fundamental_data_type_config["table_name"])
+            fundamental_values = fundamental_data_type_config["values"]
+            sub_tsdb_df = sql_reader.read_by_conditions(t_conditions=[
+                ("trade_date", ">=", bgn_date),
+                ("trade_date", "<", stp_date),
+            ], t_value_columns=fundamental_values)
+            tsdb_dfs.append(sub_tsdb_df)
 
-        # --- load data from TSDB
-        tsdb_df = sql_reader.read_by_conditions(t_conditions=[
-            ("trade_date", ">=", bgn_date),
-            ("trade_date", "<", stp_date),
-        ], t_value_columns=fundamental_values)
-
+        tsdb_df = pd.concat(tsdb_dfs, axis=0, ignore_index=True)
         for instrument, instrument_df in tsdb_df.groupby(by="wind_code"):
             new_sorted_instrument_df = pd.merge(
                 left=header_df, right=instrument_df.drop(labels="wind_code", axis=1),
