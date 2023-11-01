@@ -5,7 +5,7 @@ created @ 2023-07-27
 
 import datetime
 import pandas as pd
-from skyrim.whiterun import SetFontGreen
+from skyrim.whiterun import SetFontGreen, SetFontYellow
 from skyrim.falkreath import CTable
 from DbByInstrument import CDbByInstrumentSQL
 
@@ -51,17 +51,22 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
         member_df = pd.pivot_table(data=md_df, values=["pos_qty", "pos_dlt"], index=["trade_date", "member"], columns=["rnk_type"], aggfunc=sum).fillna(0)
         member_df.reset_index(inplace=True)
 
-        # --- column selection
-        return member_df[[
-            ("trade_date", ""),
-            ("member", ""),
+        qty_types = [
             ("pos_qty", "1"),
             ("pos_dlt", "1"),
             ("pos_qty", "2"),
             ("pos_dlt", "2"),
             ("pos_qty", "3"),
             ("pos_dlt", "3"),
-        ]]
+        ]
+        if not member_df.empty:
+            for _x, _y in qty_types:
+                if not (_x, _y) in member_df.columns:
+                    member_df[(_x, _y)] = 0
+                    print(f"... {SetFontYellow(_x)}, {SetFontYellow(_y)} not in columns of {SetFontYellow(instrument_id)}, value 0 will be added")
+
+        # --- column selection
+        return member_df[[("trade_date", ""), ("member", "")] + qty_types]
 
     def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str) -> tuple[str, list[tuple[str, pd.DataFrame]]] | None:
         if (instrument_id in self.exception_ids) and (run_mode in ["A"]):
