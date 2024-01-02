@@ -39,7 +39,13 @@ class CDbByInstrumentSQLMajorMinor(CDbByInstrumentSQL):
             n_contract = vol_srs[vol_srs.index >= _trade_month_contract].idxmax()
         else:
             n_contract = vol_srs[vol_srs.index > _trade_month_contract].idxmax()
-        d_contract = vol_srs[vol_srs.index > n_contract].idxmax()
+
+        d_srs = vol_srs[vol_srs.index > n_contract]
+        if d_srs.empty:
+            d_contract = vol_srs[vol_srs.index < n_contract].idxmax()
+            n_contract, d_contract = d_contract, n_contract
+        else:
+            d_contract = d_srs.idxmax()
         return n_contract, d_contract
 
     def __update_major_minor(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str) -> pd.DataFrame:
