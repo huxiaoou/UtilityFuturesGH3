@@ -81,7 +81,8 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
         if exchange in ["CFE"]:
             major_minor_df["vo_adj_ratio"] = 1
         else:
-            major_minor_df["vo_adj_ratio"] = [2 if trade_date < self.m_vo_adj_split_date else 1 for trade_date in major_minor_df["trade_date"]]
+            major_minor_df["vo_adj_ratio"] = [2 if trade_date < self.m_vo_adj_split_date else 1 for trade_date in
+                                              major_minor_df["trade_date"]]
 
         # --- load historical data
         db_reader = self._get_src_reader()
@@ -115,7 +116,8 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
         ).rename(mapper={self.m_major_return_price_type + "_prev": prev_prc_lbl}, axis=1)
 
         # --- adjust volume amount openInterest
-        major_return_df[["volume", "amount", "oi"]] = major_return_df[["volume", "amount", "oi"]].div(major_return_df["vo_adj_ratio"], axis="index").fillna(0)
+        major_return_df[["volume", "amount", "oi"]] = major_return_df[["volume", "amount", "oi"]].div(
+            major_return_df["vo_adj_ratio"], axis="index").fillna(0)
 
         # --- major return
         major_return_df["major_return"] = major_return_df[[this_prc_lbl, prev_prc_lbl]].apply(
@@ -141,6 +143,31 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
         major_return_df[["openC", "highC", "lowC"]] = major_return_df[["open", "high", "low"]].div(
             major_return_df["prev_close"], axis="index").multiply(base_srs_close_price, axis="index")
 
+        """
+        | time | PrevClose | Open | High | Low | Close | ContinuousClosePrice | contract   |
+        | t    | pc        | o    | h    | l   | c     | cC                   | ExampleC05 |
+        | t+1  | pc'       | o'   | h'   | l'  | c'    | cC                   | ExampleC09 |
+
+        R'[t+1] = c'[t+1] / pc'[t+1] - 1
+
+        First, cC is defined as:
+            cC[t+1] = c'[t+1] / pc'[t+1] * cC[t]
+                    = (1 + R'[t+1]) * cC[t]
+                    ...
+            cC[1]   = (1 + R'[1]) *cC[0]
+            =>
+            cC[t+1] = {\\prod_{i=1}^{t+1}(1 + R'[i])} * cC[0]
+
+        Secondly, for oC, hC, lC:
+        oC[t+1] = o'[t+1] / c'[t+1] * cC[t+1]
+                = o'[t+1] / c'[t+1] * (1 + R'[t+1] ) * cC[t]
+                = o'[t+1] / c'[t+1] * (1 + c'[t+1] / pc'[t+1] -1 ) * cC[t]
+                = o'[t+1] / c'[t+1] * c'[t+1] / pc'[t+1] * cC[t]
+                = o'[t+1] / pc'[t+1] * cC[t]
+        oC can be replaced by hC,lC,cC
+
+        """
+
         # --- column selection
         return major_return_df[[
             "trade_date", "n_contract",
@@ -149,7 +176,13 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
             "openC", "highC", "lowC", "closeC"
         ]]
 
-    def _get_update_data_by_instrument(self, instrument_id: str, run_mode: str, bgn_date: str, stp_date: str) -> tuple[str, list[tuple[str, pd.DataFrame]]] | None:
+    def _get_update_data_by_instrument(
+            self,
+            instrument_id: str,
+            run_mode: str,
+            bgn_date: str,
+            stp_date: str
+    ) -> tuple[str, list[tuple[str, pd.DataFrame]]] | None:
         if self._check_continuity(instrument_id, run_mode, bgn_date) == 0:
             update_df = self.__update_major_return(instrument_id, run_mode, bgn_date, stp_date)
             return instrument_id, [("major_return", update_df)]
