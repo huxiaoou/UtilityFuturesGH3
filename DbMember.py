@@ -48,7 +48,7 @@ class CDbByInstrumentSQLMember(CDbByInstrumentSQL):
 
         # --- transform
         # Make sure there is no necessary to adjust volume and position by dividing 2 before "20200101"
-        member_df = pd.pivot_table(data=md_df, values=["pos_qty", "pos_dlt"], index=["trade_date", "member"], columns=["rnk_type"], aggfunc=sum).fillna(0)
+        member_df = pd.pivot_table(data=md_df, values=["pos_qty", "pos_dlt"], index=["trade_date", "member"], columns=["rnk_type"], aggfunc="sum").fillna(0)
         member_df.reset_index(inplace=True)
 
         qty_types = [

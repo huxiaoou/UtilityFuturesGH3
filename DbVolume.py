@@ -55,7 +55,7 @@ class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
         md_df[["sizeClose", "sizeSettle"]] = md_df[["sizeClose", "sizeSettle"]].fillna(0)
 
         # --- update md
-        volume_df = pd.pivot_table(data=md_df, values=["volume", "amount", "oi", "sizeClose", "sizeSettle"], index="trade_date", aggfunc=sum)
+        volume_df = pd.pivot_table(data=md_df, values=["volume", "amount", "oi", "sizeClose", "sizeSettle"], index="trade_date", aggfunc="sum")
         vo_adj_ratio = 1 if exchange in ["CFE"] else [2 if trade_date < self.m_vo_adj_split_date else 1 for trade_date in volume_df.index]
         volume_df = volume_df.div(vo_adj_ratio, axis="index")
         volume_df.reset_index(inplace=True)
