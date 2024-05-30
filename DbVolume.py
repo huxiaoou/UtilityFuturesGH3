@@ -49,10 +49,10 @@ class CDbByInstrumentSQLVolume(CDbByInstrumentSQL):
         db_reader.close()
 
         # --- fillna
-        md_df[["volume", "amount", "oi"]] = md_df[["volume", "amount", "oi"]].fillna(0)
+        md_df[["volume", "amount", "oi"]] = md_df[["volume", "amount", "oi"]].astype(float).fillna(0)
         md_df["sizeClose"] = md_df["close"] * md_df["oi"] * contract_multiplier
         md_df["sizeSettle"] = md_df["settle"] * md_df["oi"] * contract_multiplier
-        md_df[["sizeClose", "sizeSettle"]] = md_df[["sizeClose", "sizeSettle"]].fillna(0)
+        md_df[["sizeClose", "sizeSettle"]] = md_df[["sizeClose", "sizeSettle"]].astype(float).fillna(0)
 
         # --- update md
         volume_df = pd.pivot_table(data=md_df, values=["volume", "amount", "oi", "sizeClose", "sizeSettle"], index="trade_date", aggfunc="sum")

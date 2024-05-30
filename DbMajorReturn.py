@@ -96,7 +96,7 @@ class CDbByInstrumentSQLMajorReturn(CDbByInstrumentSQL):
         db_reader.close()
 
         # --- fillna
-        md_df[["open", "high", "low", "close"]] = md_df[["open", "high", "low", "close"]].fillna(np.nan)
+        md_df[["open", "high", "low", "close"]] = md_df[["open", "high", "low", "close"]].astype(float).fillna(np.nan)
         md_df[["volume", "amount", "oi"]] = md_df[["volume", "amount", "oi"]].fillna(0)
 
         # --- update md
